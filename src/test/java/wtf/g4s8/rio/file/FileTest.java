@@ -125,7 +125,7 @@ public final class FileTest {
     }
 
     @Test
-    @Timeout(2)
+    @Timeout(5)
     void writeHugeFile(@TempDir final Path tmp) throws Exception {
         final Path target = tmp.resolve("target");
         new File(target).write(
