@@ -3,7 +3,7 @@ Reactive Input Output objects for Java:
  - [RS-TCK](https://github.com/reactive-streams/reactive-streams-jvm/tree/master/tck) compatible (see tests for [publishers](https://github.com/g4s8/rio/blob/master/src/test/java/wtf/g4s8/rio/file/ReadFlowTest.java) and [subscribers](https://github.com/g4s8/rio/blob/master/src/test/java/wtf/g4s8/rio/file/WriteSubscriberTest.java))
  - No dependencies: the only dependency is `org.reactivestreams:reactive-streams` interfaces
 
-<!-- add build badges here -->
+[![Maven Build](https://github.com/g4s8/rio/workflows/Maven%20Build/badge.svg)](https://github.com/g4s8/rio/actions?query=workflow%3A%22Maven+Build%22)
 
 ## Install
 
@@ -42,7 +42,7 @@ import wtf.g4s8.rio.file.File;
 Publisher<ByteBuffer> content = new File(Paths.get("/tmp/my/file.txt")).content();
 ```
 
-The file will be read on demand (`request` method of `Subscription`) with all respect to backpressue.
+The file will be read on demand with all respect to backpressure.
 This default implementation uses 8 kilobytes buffer to read the file.
 
 To tune the buffer allocation strategy use overloaded `Publisher<ByteBuffer> read(Buffers buffers)` method,
