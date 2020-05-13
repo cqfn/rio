@@ -1,6 +1,6 @@
 Reactive Input Output objects for Java:
  - Fine tuned: fast or memory effecient
- - [RS-TCK](https://github.com/reactive-streams/reactive-streams-jvm/tree/master/tck) compatible (see tests for publishers and subscribers)
+ - [RS-TCK](https://github.com/reactive-streams/reactive-streams-jvm/tree/master/tck) compatible (see tests for [publishers](https://github.com/g4s8/rio/blob/master/src/test/java/wtf/g4s8/rio/file/ReadFlowTest.java) and [subscribers](https://github.com/g4s8/rio/blob/master/src/test/java/wtf/g4s8/rio/file/WriteSubscriberTest.java))
  - No dependencies: the only dependency is `org.reactivestreams:reactive-streams` interfaces
 
 <!-- add build badges here -->
