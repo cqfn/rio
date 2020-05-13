@@ -36,6 +36,8 @@ import java.util.Collections;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.tck.SubscriberBlackboxVerification;
 import org.reactivestreams.tck.TestEnvironment;
+import org.testng.SkipException;
+import org.testng.annotations.BeforeClass;
 
 /**
  * Test case for {@link WriteSubscriber}.
@@ -45,6 +47,13 @@ import org.reactivestreams.tck.TestEnvironment;
  */
 @SuppressWarnings({"PMD.TestClassWithoutTestCases", "PMD.OnlyOneReturn"})
 public final class WriteSubscriberTest extends SubscriberBlackboxVerification<ByteBuffer> {
+
+    @BeforeClass
+    public void setUp() {
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            throw new SkipException("Disabled for windows");
+        }
+    }
 
     /**
      * Ctor.
