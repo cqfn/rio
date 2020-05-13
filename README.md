@@ -4,6 +4,7 @@ Reactive Input Output objects for Java:
  - No dependencies: the only dependency is `org.reactivestreams:reactive-streams` interfaces
 
 [![Maven Build](https://github.com/g4s8/rio/workflows/Maven%20Build/badge.svg)](https://github.com/g4s8/rio/actions?query=workflow%3A%22Maven+Build%22)
+[![codecov](https://codecov.io/gh/g4s8/rio/branch/master/graph/badge.svg)](https://codecov.io/gh/g4s8/rio)
 
 ## Install
 
