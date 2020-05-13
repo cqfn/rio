@@ -34,8 +34,6 @@ import java.nio.file.Paths;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
-import org.testng.SkipException;
-import org.testng.annotations.BeforeClass;
 
 /**
  * Test case for {@link ReadFlow}.
@@ -45,13 +43,6 @@ import org.testng.annotations.BeforeClass;
  */
 @SuppressWarnings({"PMD.TestClassWithoutTestCases", "PMD.OnlyOneReturn"})
 public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
-
-    @BeforeClass
-    public void setUp() {
-        if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            throw new SkipException("Disabled for windows");
-        }
-    }
 
     /**
      * Ctor.
