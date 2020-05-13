@@ -3,7 +3,7 @@ Reactive Input Output objects for Java:
  - [RS-TCK](https://github.com/reactive-streams/reactive-streams-jvm/tree/master/tck) compatible (see tests for publishers and subscribers)
  - No dependencies: the only dependency is `org.reactivestreams:reactive-streams` interfaces
 
-TODO: build badges
+<!-- add build badges here -->
 
 ## Install
 

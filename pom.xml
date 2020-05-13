@@ -91,7 +91,7 @@
             <goals>
               <goal>test</goal>
             </goals>
-            <configuration> 
+            <configuration>
               <testNGArtifactName>none:none</testNGArtifactName>
             </configuration>
           </execution>
