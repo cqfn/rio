@@ -5,6 +5,7 @@ Reactive Input Output objects for Java:
 
 [![Maven Build](https://github.com/g4s8/rio/workflows/Maven%20Build/badge.svg)](https://github.com/g4s8/rio/actions?query=workflow%3A%22Maven+Build%22)
 [![codecov](https://codecov.io/gh/g4s8/rio/branch/master/graph/badge.svg)](https://codecov.io/gh/g4s8/rio)
+[![Maven Central](https://img.shields.io/maven-central/v/wtf.g4s8/rio.svg)](https://maven-badges.herokuapp.com/maven-central/wtf.g4s8/rio)
 
 ## Install
 
