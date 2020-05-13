@@ -33,9 +33,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
+import org.junit.jupiter.api.Assumptions;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.tck.SubscriberBlackboxVerification;
 import org.reactivestreams.tck.TestEnvironment;
+import org.testng.annotations.BeforeClass;
 
 /**
  * Test case for {@link WriteSubscriber}.
@@ -45,6 +47,11 @@ import org.reactivestreams.tck.TestEnvironment;
  */
 @SuppressWarnings({"PMD.TestClassWithoutTestCases", "PMD.OnlyOneReturn"})
 public final class WriteSubscriberTest extends SubscriberBlackboxVerification<ByteBuffer> {
+
+    @BeforeClass
+    public void setUp() {
+        Assumptions.assumeFalse(() -> System.getProperty("os.name").toLowerCase().contains("win"));
+    }
 
     /**
      * Ctor.

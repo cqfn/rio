@@ -31,9 +31,11 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.junit.jupiter.api.Assumptions;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
+import org.testng.annotations.BeforeClass;
 
 /**
  * Test case for {@link ReadFlow}.
@@ -43,6 +45,11 @@ import org.reactivestreams.tck.TestEnvironment;
  */
 @SuppressWarnings({"PMD.TestClassWithoutTestCases", "PMD.OnlyOneReturn"})
 public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
+
+    @BeforeClass
+    public void setUp() {
+        Assumptions.assumeFalse(() -> System.getProperty("os.name").toLowerCase().contains("win"));
+    }
 
     /**
      * Ctor.
