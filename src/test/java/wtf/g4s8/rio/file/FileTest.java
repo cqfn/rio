@@ -41,6 +41,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
@@ -125,7 +126,8 @@ public final class FileTest {
     }
 
     @Test
-    @Timeout(5)
+    @Timeout(2)
+    @EnabledIfSystemProperty(named = "test.huge", matches = "true")
     void writeHugeFile(@TempDir final Path tmp) throws Exception {
         final Path target = tmp.resolve("target");
         new File(target).write(
