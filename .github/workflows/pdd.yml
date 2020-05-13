@@ -8,7 +8,7 @@ name: PDD linter
     brranches:
       - master
 jobs:
-  build:
+  pdd-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

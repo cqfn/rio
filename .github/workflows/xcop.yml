@@ -8,7 +8,7 @@ name: XCOP linter
     brranches:
       - master
 jobs:
-  build:
+  xcop-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
