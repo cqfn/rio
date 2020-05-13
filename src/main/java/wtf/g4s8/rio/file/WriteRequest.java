@@ -24,6 +24,7 @@
  */
 package wtf.g4s8.rio.file;
 
+import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -81,6 +82,14 @@ abstract class WriteRequest {
                 try {
                     chan.write(this.target);
                 } catch (final IOException iex) {
+                    try {
+                        chan.close();
+                    } catch (final IOException cex) {
+                        Logger.warn(
+                            this,
+                            "Failed to close channel on next failure: %[exception]s", cex
+                        );
+                    }
                     this.future.completeExceptionally(iex);
                     return;
                 }
@@ -147,6 +156,14 @@ abstract class WriteRequest {
 
         @Override
         void process(final FileChannel chan) {
+            try {
+                chan.close();
+            } catch (final IOException cex) {
+                Logger.warn(
+                    this,
+                    "Failed to close channel on error: %[exception]s", cex
+                );
+            }
             this.future.completeExceptionally(this.err);
         }
 

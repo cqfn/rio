@@ -24,6 +24,7 @@
  */
 package wtf.g4s8.rio.file;
 
+import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -92,6 +93,14 @@ abstract class ReadRequest {
                 try {
                     read = channel.read(buf);
                 } catch (final IOException iex) {
+                    try {
+                        channel.close();
+                    } catch (final IOException cex) {
+                        Logger.warn(
+                            this,
+                            "Failed to close channel on errors: %[exception]s", cex
+                        );
+                    }
                     this.sub.onError(iex);
                     return;
                 }
@@ -99,7 +108,12 @@ abstract class ReadRequest {
                 if (read >= 0) {
                     this.sub.onNext(buf);
                 } else {
-                    this.sub.onComplete();
+                    try {
+                        channel.close();
+                        this.sub.onComplete();
+                    } catch (final IOException iex) {
+                        this.sub.onError(iex);
+                    }
                     return;
                 }
             }
