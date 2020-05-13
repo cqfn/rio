@@ -92,8 +92,10 @@ final class WriteSubscriber extends CompletableFuture<Void> implements Subscribe
         } else {
             this.exec.submit(
                 new ShutdownOnExit(
-                    this.exec,
-                    new WriteBusyLoop(this, this.chan, this.sub, this.queue, this.greed)
+                    new CloseChanOnExit(
+                        new WriteBusyLoop(this, this.chan, this.sub, this.queue, this.greed),
+                        this.chan
+                    ), this.exec
                 )
             );
         }

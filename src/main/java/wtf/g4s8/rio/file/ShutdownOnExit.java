@@ -44,10 +44,10 @@ final class ShutdownOnExit implements Runnable {
 
     /**
      * Wrap origin runnable.
-     * @param exec Executor to shutdown
      * @param origin Origin runnable
+     * @param exec Executor to shutdown
      */
-    ShutdownOnExit(final ExecutorService exec, final Runnable origin) {
+    ShutdownOnExit(final Runnable origin, final ExecutorService exec) {
         this.exec = exec;
         this.origin = origin;
     }

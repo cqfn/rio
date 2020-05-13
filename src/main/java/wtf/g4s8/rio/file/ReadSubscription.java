@@ -66,7 +66,15 @@ final class ReadSubscription implements Subscription {
         this.buffers = buffers;
         this.queue = new ConcurrentLinkedQueue<>();
         final ExecutorService exec = Executors.newSingleThreadExecutor();
-        exec.submit(new ShutdownOnExit(exec, new ReadBusyLoop(this.queue, this.sub, chan)));
+        exec.submit(
+            new ShutdownOnExit(
+                new CloseChanOnExit(
+                    new ReadBusyLoop(this.queue, this.sub, chan),
+                    chan
+                ),
+                exec
+            )
+        );
     }
 
     @Override
