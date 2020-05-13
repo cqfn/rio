@@ -33,10 +33,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
-import org.junit.jupiter.api.Assumptions;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.tck.SubscriberBlackboxVerification;
 import org.reactivestreams.tck.TestEnvironment;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 
 /**
@@ -50,7 +50,9 @@ public final class WriteSubscriberTest extends SubscriberBlackboxVerification<By
 
     @BeforeClass
     public void setUp() {
-        Assumptions.assumeFalse(() -> System.getProperty("os.name").toLowerCase().contains("win"));
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            throw new SkipException("Disabled for windows");
+        }
     }
 
     /**
