@@ -31,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
@@ -74,12 +75,20 @@ public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
             throw new UncheckedIOException(err);
         }
         final int capacity = (int) (5200 / size);
-        return new ReadFlow(tmp, () -> ByteBuffer.allocateDirect(capacity));
+        return new ReadFlow(
+            tmp,
+            () -> ByteBuffer.allocateDirect(capacity),
+            Executors.newCachedThreadPool()
+        );
     }
 
     @Override
     public Publisher<ByteBuffer> createFailedPublisher() {
-        return new ReadFlow(Paths.get("/some/file/which/doesnt/exist"), Buffers.Standard.K1);
+        return new ReadFlow(
+            Paths.get("/some/file/which/doesnt/exist"),
+            Buffers.Standard.K1,
+            Executors.newCachedThreadPool()
+        );
     }
 
     @Override

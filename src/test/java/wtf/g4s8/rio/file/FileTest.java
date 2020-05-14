@@ -75,6 +75,31 @@ public final class FileTest {
         );
     }
 
+    /**
+     * This test is supposed to verify valid usage of {@link java.lang.ref.WeakReference}
+     * in {@link ReadFlow}.
+     * @param tmp Temporary folder
+     * @throws Exception On error
+     */
+    @RepeatedTest(10)
+    void readsContentWithGarbageCollection(@TempDir final Path tmp) throws Exception {
+        final Path file = tmp.resolve("test");
+        new TestResource("file.bin").copy(file);
+        final String sha256 = Flowable.fromPublisher(new File(file).content(Buffers.Standard.K1)).reduceWith(
+            () -> MessageDigest.getInstance("SHA-256"),
+            (digest, buf) -> {
+                digest.update(buf);
+                Thread.sleep(10);
+                System.gc();
+                return digest;
+            }
+        ).map(MessageDigest::digest).map(FileTest::bytesToHex).blockingGet();
+        MatcherAssert.assertThat(
+            sha256,
+            Matchers.equalTo("064EA88A18650615410970219992D54DA5CEFAE194A23FCBE3C3AF484CB3F501")
+        );
+    }
+
     @RepeatedTest(1000)
     void writeFile(@TempDir final Path tmp) throws Exception {
         final Path out = tmp.resolve("out.bin");

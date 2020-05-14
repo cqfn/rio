@@ -24,6 +24,7 @@
  */
 package wtf.g4s8.rio.file;
 
+import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -35,9 +36,13 @@ import org.reactivestreams.Subscription;
 final class ReadSubscriberState<T> implements Subscriber<T> {
 
     /**
-     * Origin subscriber.
+     * Origin subscriber weak reference.
+     * <p>
+     * According to RS-TCK specification, publisher can't hold subscriber references after
+     * cancellation, so we're clearing reference manually on cancel signals.
+     * </p>
      */
-    private final Subscriber<T> origin;
+    private final WeakReference<Subscriber<T>> origin;
 
     /**
      * Completion state.
@@ -49,31 +54,49 @@ final class ReadSubscriberState<T> implements Subscriber<T> {
      * @param origin Subscriber to decorate
      */
     public ReadSubscriberState(final Subscriber<T> origin) {
-        this.origin = origin;
+        this.origin = new WeakReference<>(origin);
         this.completed = new AtomicBoolean();
     }
 
     @Override
     public void onSubscribe(final Subscription subscription) {
-        this.origin.onSubscribe(subscription);
+        final Subscriber<T> sub = this.origin.get();
+        if (sub == null) {
+            return;
+        }
+        sub.onSubscribe(subscription);
     }
 
     @Override
     public void onNext(final T next) {
-        this.origin.onNext(next);
+        final Subscriber<T> sub = this.origin.get();
+        if (sub == null) {
+            return;
+        }
+        sub.onNext(next);
     }
 
     @Override
     public void onError(final Throwable err) {
+        final Subscriber<T> sub = this.origin.get();
+        if (sub == null) {
+            return;
+        }
         if (this.completed.compareAndSet(false, true)) {
-            this.origin.onError(err);
+            sub.onError(err);
+            this.origin.clear();
         }
     }
 
     @Override
     public void onComplete() {
+        final Subscriber<T> sub = this.origin.get();
+        if (sub == null) {
+            return;
+        }
         if (this.completed.compareAndSet(false, true)) {
-            this.origin.onComplete();
+            sub.onComplete();
+            this.origin.clear();
         }
     }
 
@@ -82,6 +105,7 @@ final class ReadSubscriberState<T> implements Subscriber<T> {
      */
     public void cancel() {
         this.completed.set(true);
+        this.origin.clear();
     }
 
     /**

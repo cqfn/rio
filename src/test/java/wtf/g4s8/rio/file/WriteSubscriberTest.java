@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.Executors;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.tck.SubscriberBlackboxVerification;
 import org.reactivestreams.tck.TestEnvironment;
@@ -70,7 +71,8 @@ public final class WriteSubscriberTest extends SubscriberBlackboxVerification<By
             tmp.toFile().deleteOnExit();
             return new WriteSubscriber(
                 FileChannel.open(tmp, Collections.singleton(StandardOpenOption.WRITE)),
-                WriteGreed.SINGLE
+                WriteGreed.SINGLE,
+                Executors.newCachedThreadPool()
             );
         } catch (final IOException err) {
             throw new UncheckedIOException(err);

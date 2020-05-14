@@ -31,7 +31,6 @@ import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -71,13 +70,14 @@ final class WriteSubscriber extends CompletableFuture<Void> implements Subscribe
      * New write subscriber.
      * @param chan File channel
      * @param greed Consumer greed level
+     * @param exec
      */
-    WriteSubscriber(final FileChannel chan, final WriteGreed greed) {
+    WriteSubscriber(final FileChannel chan, final WriteGreed greed, final ExecutorService exec) {
         this.chan = chan;
         this.greed = greed;
         this.sub = new AtomicReference<>();
         this.queue = new ConcurrentLinkedQueue<>();
-        this.exec = Executors.newSingleThreadExecutor();
+        this.exec = exec;
     }
 
     @Override
@@ -91,11 +91,9 @@ final class WriteSubscriber extends CompletableFuture<Void> implements Subscribe
             this.exec.shutdown();
         } else {
             this.exec.submit(
-                new ShutdownOnExit(
-                    new CloseChanOnExit(
-                        new WriteBusyLoop(this, this.chan, this.sub, this.queue, this.greed),
-                        this.chan
-                    ), this.exec
+                new CloseChanOnExit(
+                    new WriteBusyLoop(this, this.chan, this.sub, this.queue, this.greed),
+                    this.chan
                 )
             );
         }

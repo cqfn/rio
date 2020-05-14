@@ -30,6 +30,9 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -66,13 +69,20 @@ final class ReadFlow implements Publisher<ByteBuffer> {
     private final Buffers buffers;
 
     /**
-     * Ctor.
-     * @param path
-     * @param buffers
+     * Executor service for IO operations
      */
-    ReadFlow(final Path path, final Buffers buffers) {
+    private final ExecutorService exec;
+
+    /**
+     * Ctor.
+     * @param path Path for file
+     * @param buffers Buffers allocation strategy
+     * @param exec Executor service for IO operations
+     */
+    ReadFlow(final Path path, final Buffers buffers, final ExecutorService exec) {
         this.buffers = buffers;
         this.path = path;
+        this.exec = exec;
     }
 
     @Override
@@ -86,6 +96,14 @@ final class ReadFlow implements Publisher<ByteBuffer> {
             subscriber.onError(err);
             return;
         }
-        subscriber.onSubscribe(new ReadSubscription(chan, subscriber, this.buffers));
+        final Queue<ReadRequest> queue = new ConcurrentLinkedQueue<>();
+        final ReadSubscriberState<? super ByteBuffer> wrap = new ReadSubscriberState<>(subscriber);
+        wrap.onSubscribe(new ReadSubscription(chan, wrap, this.buffers, queue));
+        this.exec.submit(
+            new CloseChanOnExit(
+                new ReadBusyLoop(queue, wrap, chan),
+                chan
+            )
+        );
     }
 }

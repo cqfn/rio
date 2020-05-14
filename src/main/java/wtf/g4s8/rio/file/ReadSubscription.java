@@ -27,9 +27,6 @@ package wtf.g4s8.rio.file;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -59,22 +56,13 @@ final class ReadSubscription implements Subscription {
      * @param chan File channel
      * @param out Output subscriber
      * @param buffers Buffers allocation strategy
+     * @param queue
      */
     ReadSubscription(final FileChannel chan, final Subscriber<? super ByteBuffer> out,
-        final Buffers buffers) {
+        final Buffers buffers, final Queue<ReadRequest> queue) {
         this.sub = new ReadSubscriberState<>(out);
         this.buffers = buffers;
-        this.queue = new ConcurrentLinkedQueue<>();
-        final ExecutorService exec = Executors.newSingleThreadExecutor();
-        exec.submit(
-            new ShutdownOnExit(
-                new CloseChanOnExit(
-                    new ReadBusyLoop(this.queue, this.sub, chan),
-                    chan
-                ),
-                exec
-            )
-        );
+        this.queue = queue;
     }
 
     @Override

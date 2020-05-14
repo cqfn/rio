@@ -51,6 +51,9 @@ To tune the buffer allocation strategy use overloaded `Publisher<ByteBuffer> rea
 `Buffers` interface is responsible to provide new buffers for reading. Some standard implementations are
 available at `Buffers.Standard` enum.
 
+All read operations are performed in `ThreadPoolExecutor` by default, to specify executor service explicitely use
+`content(ExecuorService)` or `content(Buffers, ExecutorService)` overloaded methods.
+
 ## Write file
 
 To write reactive stream of `ByteBuffer`s to file use `CompletionStage<Void> write(Publisher<ByteBuffer> data)`
@@ -94,3 +97,6 @@ or via system properties for default imeplementation:
 # request 10 buffers when read 8 (only for default write method)
 java -Drio.file.write.greed.amount=10 -Drio.file.write.greed.shift=2
 ```
+
+All write operations are performed in `ThreadPoolExecutor` by default, to specify executor service explicitely use
+`write(Publisher<ByteBuffer> data, ExecuorService exec)` overloaded method.

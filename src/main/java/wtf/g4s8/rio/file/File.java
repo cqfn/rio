@@ -34,6 +34,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
 
 /**
@@ -41,6 +43,11 @@ import org.reactivestreams.Publisher;
  * @since 0.1
  */
 public final class File {
+
+    /**
+     * Default executor.
+     */
+    private static final ExecutorService EXEC_DEFAULT = Executors.newCachedThreadPool();
 
     /**
      * File path.
@@ -69,7 +76,27 @@ public final class File {
      * @return Content publisher
      */
     public Publisher<ByteBuffer> content(final Buffers buf) {
-        return new ReadFlow(this.path, buf);
+        return this.content(buf, File.EXEC_DEFAULT);
+    }
+
+    /**
+     * File's content.
+     * @param exec Executor service to perform IO operations
+     * @return Content publisher
+     */
+    public Publisher<ByteBuffer> content(final ExecutorService exec) {
+        return new ReadFlow(this.path, Buffers.Standard.K8, exec);
+    }
+
+
+    /**
+     * File's content.
+     * @param buf Buffers policy
+     * @param exec Executor service to perform IO operations
+     * @return Content publisher
+     */
+    public Publisher<ByteBuffer> content(final Buffers buf, final ExecutorService exec) {
+        return new ReadFlow(this.path, buf, exec);
     }
 
     /**
@@ -85,11 +112,39 @@ public final class File {
     /**
      * Write data to file.
      * @param data Data publisher
+     * @param exec Executor service to perform IO operations
+     * @param opts Options
+     * @return Future
+     */
+    public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
+        final ExecutorService exec,
+        final OpenOption... opts) {
+        return this.write(data, WriteGreed.SYSTEM, exec, opts);
+    }
+
+    /**
+     * Write data to file.
+     * @param data Data publisher
      * @param greed Greed level of consumer
      * @param opts Options
      * @return Future
      */
     public CompletionStage<Void> write(final Publisher<ByteBuffer> data, final WriteGreed greed,
+        final OpenOption... opts) {
+        return this.write(data, greed, File.EXEC_DEFAULT, opts);
+    }
+
+    /**
+     * Write data to file.
+     * @param data Data publisher
+     * @param greed Greed level of consumer
+     * @param exec Executor service to perform IO operations
+     * @param opts Options
+     * @return Future
+     */
+    public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
+        final WriteGreed greed,
+        final ExecutorService exec,
         final OpenOption... opts) {
         final WriteSubscriber sub;
         try {
@@ -98,7 +153,8 @@ public final class File {
                     this.path,
                     new HashSet<>(Arrays.asList(writeOpts(opts)))
                 ),
-                greed
+                greed,
+                exec
             );
         } catch (final IOException err) {
             final CompletableFuture<Void> res = new CompletableFuture<>();
