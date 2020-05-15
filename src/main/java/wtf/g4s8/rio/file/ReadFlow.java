@@ -101,9 +101,49 @@ final class ReadFlow implements Publisher<ByteBuffer> {
         wrap.onSubscribe(new ReadSubscription(chan, wrap, this.buffers, queue));
         this.exec.submit(
             new CloseChanOnExit(
-                new ReadBusyLoop(queue, wrap, chan),
+                new ErrorOnException(
+                    new ReadBusyLoop(queue, wrap, chan),
+                    wrap
+                ),
                 chan
             )
         );
+    }
+
+    /**
+     * Handle all exceptions including unchecked and signal error state to
+     * subscriber.
+     * @since 0.1
+     */
+    private static final class ErrorOnException implements Runnable {
+
+        /**
+         * Origin runnable.
+         */
+        private final Runnable runnable;
+
+        /**
+         * Subscriber.
+         */
+        private final ReadSubscriberState<?> sub;
+
+        /**
+         * Wrap runnable.
+         * @param runnable Runnable to wrap
+         * @param sub Subscriber
+         */
+        ErrorOnException(final Runnable runnable, final ReadSubscriberState<?> sub) {
+            this.runnable = runnable;
+            this.sub = sub;
+        }
+
+        @Override
+        public void run() {
+            try {
+                this.runnable.run();
+            } catch (final Throwable exx) {
+                this.sub.onError(exx);
+            }
+        }
     }
 }
