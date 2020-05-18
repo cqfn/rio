@@ -29,14 +29,17 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscription;
 
 /**
- * Write subscription busy loop runnable.
+ * Write subscription runnable task loop.
  * @since 0.1
  */
-final class WriteBusyLoop implements Runnable {
+final class WriteTaskQueue implements Runnable {
 
     /**
      * Target future.
@@ -63,32 +66,62 @@ final class WriteBusyLoop implements Runnable {
      */
     private final WriteGreed greed;
 
+    private final Executor exec;
+
+    /**
+     * Running atomic flag.
+     */
+    private final AtomicBoolean running = new AtomicBoolean();
+
     /**
      * Ctor.
      * @param future Target future
      * @param channel File channel
      * @param sub Subscription reference
-     * @param queue Request queue
      * @param greed Greed level
+     * @param exec
      * @checkstyle ParameterNumberCheck (5 lines)
      */
-     WriteBusyLoop(final CompletableFuture<Void> future, final FileChannel channel,
-        final AtomicReference<Subscription> sub, final Queue<WriteRequest> queue,
-        final WriteGreed greed) {
+    WriteTaskQueue(final CompletableFuture<Void> future, final FileChannel channel,
+        final AtomicReference<Subscription> sub,
+        final WriteGreed greed, final Executor exec) {
         this.future = future;
         this.channel = channel;
         this.sub = sub;
-        this.queue = queue;
+        this.queue = new ConcurrentLinkedQueue<>();
         this.greed = greed;
+        this.exec = exec;
     }
 
     @Override
     public void run() {
         while (!this.future.isDone()) {
-            this.greed.request(this.sub.get());
-            final WriteRequest next = this.queue.poll();
-            if (next == null) {
+            // requesting next chunk of byte buffers according to greed strategy
+            final boolean requested = this.greed.request(this.sub.get());
+            WriteRequest next = this.queue.poll();
+            // if no next item, try to exit the loop
+            boolean empty = next == null;
+            if (!requested && empty) {
                 continue;
+            }
+            if (empty) {
+                // mark this loop as finished
+                this.running.set(false);
+                // check if any next item available
+                next = this.queue.peek();
+                empty = next == null;
+                // recover - if next item available and this loop is still not running
+                // continue running this loop and process it
+                if (!empty && this.running.compareAndSet(false, true)) {
+                    if (this.future.isDone()) {
+                        break;
+                    }
+                    // remove peeked item
+                    this.queue.remove(next);
+                } else {
+                    // if empty or acquired by next loop - exit
+                    return;
+                }
             }
             next.process(this.channel);
         }
@@ -100,5 +133,19 @@ final class WriteBusyLoop implements Runnable {
             }
         }
         this.sub.getAndSet(null).cancel();
+        this.running.set(false);
+    }
+
+    public void accept(final WriteRequest req) {
+        if (this.future.isDone()) {
+            return;
+        }
+        if (req instanceof WriteRequest.Error) {
+            this.queue.clear();
+        }
+        this.queue.add(req);
+        if (this.running.compareAndSet(false, true)) {
+            this.exec.execute(this);
+        }
     }
 }

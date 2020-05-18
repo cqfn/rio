@@ -172,4 +172,24 @@ abstract class WriteRequest {
             return String.format("Error: %s", this.err.getMessage());
         }
     }
+
+    /**
+     * Init request.
+     * @since 0.2
+     */
+    public static final class Init extends WriteRequest {
+
+        /**
+         * Ctor.
+         * @param future Write future
+         */
+        public Init(final CompletableFuture<Void> future) {
+            super(future);
+        }
+
+        @Override
+        void process(final FileChannel chan) {
+            // nothing
+        }
+    }
 }

@@ -27,9 +27,7 @@ package wtf.g4s8.rio.file;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscriber;
@@ -52,19 +50,13 @@ final class WriteSubscriber extends CompletableFuture<Void> implements Subscribe
     private final AtomicReference<Subscription> sub;
 
     /**
-     * Request queue.
-     */
-    private final Queue<WriteRequest> queue;
-
-    /**
      * Executor service.
      */
     private final ExecutorService exec;
 
-    /**
-     * Consumer greed level.
-     */
     private final WriteGreed greed;
+
+    private WriteTaskQueue queue;
 
     /**
      * New write subscriber.
@@ -74,10 +66,9 @@ final class WriteSubscriber extends CompletableFuture<Void> implements Subscribe
      */
     WriteSubscriber(final FileChannel chan, final WriteGreed greed, final ExecutorService exec) {
         this.chan = chan;
-        this.greed = greed;
         this.sub = new AtomicReference<>();
-        this.queue = new ConcurrentLinkedQueue<>();
         this.exec = exec;
+        this.greed = greed;
     }
 
     @Override
@@ -88,30 +79,26 @@ final class WriteSubscriber extends CompletableFuture<Void> implements Subscribe
         }
         if (this.isCancelled()) {
             subscription.cancel();
-            this.exec.shutdown();
         } else {
-            this.exec.submit(
-                new CloseChanOnExit(
-                    new WriteBusyLoop(this, this.chan, this.sub, this.queue, this.greed),
-                    this.chan
-                )
+            this.queue = new WriteTaskQueue(
+                this, this.chan, this.sub, this.greed, this.exec
             );
+            this.queue.accept(new WriteRequest.Init(this));
         }
     }
 
     @Override
     public void onNext(final ByteBuffer buf) {
-        this.queue.add(new WriteRequest.Next(this, Objects.requireNonNull(buf)));
+        this.queue.accept(new WriteRequest.Next(this, Objects.requireNonNull(buf)));
     }
 
     @Override
     public void onError(final Throwable err) {
-        this.queue.clear();
-        this.queue.add(new WriteRequest.Error(this, Objects.requireNonNull(err)));
+        this.queue.accept(new WriteRequest.Error(this, Objects.requireNonNull(err)));
     }
 
     @Override
     public void onComplete() {
-        this.queue.add(new WriteRequest.Complete(this));
+        this.queue.accept(new WriteRequest.Complete(this));
     }
 }

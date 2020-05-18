@@ -25,8 +25,6 @@
 package wtf.g4s8.rio.file;
 
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.util.Queue;
 import org.reactivestreams.Subscription;
 
 /**
@@ -45,20 +43,17 @@ final class ReadSubscription implements Subscription {
      */
     private final Buffers buffers;
 
-    /**
-     * Requests queue.
-     */
-    private final Queue<ReadRequest> queue;
+
+    private final ReadTaskQueue queue;
 
     /**
      * New read subscription.
-     * @param chan File channel
      * @param sub Output subscriber
      * @param buffers Buffers allocation strategy
-     * @param queue
+     * @param queue Read task queue
      */
-    ReadSubscription(final FileChannel chan, final ReadSubscriberState<? super ByteBuffer> sub,
-        final Buffers buffers, final Queue<ReadRequest> queue) {
+    ReadSubscription(final ReadSubscriberState<? super ByteBuffer> sub,
+        final Buffers buffers, final ReadTaskQueue queue) {
         this.sub = sub;
         this.buffers = buffers;
         this.queue = queue;
@@ -74,7 +69,7 @@ final class ReadSubscription implements Subscription {
             this.sub.onError(new IllegalArgumentException(String.format("Requested %d items", count)));
             return;
         }
-        this.queue.add(new ReadRequest.Next(this.sub, this.buffers, count));
+        this.queue.accept(new ReadRequest.Next(this.sub, this.buffers, count));
     }
 
     @Override

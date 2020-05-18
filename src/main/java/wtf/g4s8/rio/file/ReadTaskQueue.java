@@ -29,12 +29,15 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Read loop for read requests.
  * @since 0.1
  */
-public final class ReadBusyLoop implements Runnable {
+public final class ReadTaskQueue implements Runnable {
 
     /**
      * Requests queue.
@@ -51,24 +54,41 @@ public final class ReadBusyLoop implements Runnable {
      */
     private final FileChannel channel;
 
+    private final Executor exec;
+
+    private final AtomicBoolean running = new AtomicBoolean();
+
     /**
      * New busy loop.
-     * @param queue Requests queue
      * @param sub Subscriber
      * @param channel File channel
+     * @param exec
      */
-    public ReadBusyLoop(final Queue<ReadRequest> queue, final ReadSubscriberState<? super ByteBuffer> sub, final FileChannel channel) {
-        this.queue = queue;
+    public ReadTaskQueue(final ReadSubscriberState<? super ByteBuffer> sub,
+        final FileChannel channel, final Executor exec) {
+        this.queue = new ConcurrentLinkedQueue<>();
         this.sub = sub;
+        this.exec = exec;
         this.channel = channel;
     }
 
     @Override
     public void run() {
         while (!this.sub.done()) {
-            final ReadRequest next = this.queue.poll();
-            if (next == null) {
-                continue;
+            ReadRequest next = this.queue.poll();
+            boolean empty = next == null;
+            if (empty) {
+                this.running.set(false);
+                next = this.queue.peek();
+                empty = next == null;
+                if (!empty && this.running.compareAndSet(false, true)) {
+                    if (this.sub.done()) {
+                        break;
+                    }
+                    this.queue.remove(next);
+                } else {
+                    return;
+                }
             }
             next.process(this.channel);
         }
@@ -79,5 +99,19 @@ public final class ReadBusyLoop implements Runnable {
                 Logger.warn(this, "Failed to close channel: %[exception]s", err);
             }
         }
+    }
+
+    public void accept(final ReadRequest request) {
+        if (this.sub.done()) {
+            return;
+        }
+        this.queue.add(request);
+        if (this.running.compareAndSet(false, true)) {
+            this.exec.execute(new CloseChanOnError(this, this.channel));
+        }
+    }
+
+    public void clear() {
+        this.queue.clear();
     }
 }
