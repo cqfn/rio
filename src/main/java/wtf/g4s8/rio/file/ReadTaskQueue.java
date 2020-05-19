@@ -107,7 +107,12 @@ public final class ReadTaskQueue implements Runnable {
         }
         this.queue.add(request);
         if (this.running.compareAndSet(false, true)) {
-            this.exec.execute(new CloseChanOnError(this, this.channel));
+            this.exec.execute(
+                new ErrorOnException(
+                    new CloseChanOnError(this, this.channel),
+                    this.sub
+                )
+            );
         }
     }
 
