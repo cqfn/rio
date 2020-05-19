@@ -49,7 +49,7 @@ public interface WriteGreed {
      * Request next chunks from subscription.
      * @param sub Subscription to request
      */
-    void request(Subscription sub);
+    boolean request(Subscription sub);
 
     /**
      * Request always constant amount.
@@ -93,12 +93,14 @@ public interface WriteGreed {
         }
 
         @Override
-        public void request(final Subscription sub) {
+        public boolean request(final Subscription sub) {
             final long pos = this.cnt.updateAndGet(prev -> prev <= this.shift ? this.amount : prev);
             if (pos == this.amount) {
                 sub.request(this.amount);
+                return true;
             }
             this.cnt.decrementAndGet();
+            return false;
         }
     }
 }

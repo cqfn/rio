@@ -35,6 +35,8 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -144,6 +146,20 @@ public final class FileTest {
         final Path dest = tmp.resolve("dst");
         new TestResource("file.bin").copy(src);
         new File(dest).write(new File(src).content(Buffers.Standard.K1)).toCompletableFuture().get();
+        MatcherAssert.assertThat(
+            bytesToHex(sha256().digest(Files.readAllBytes(dest))),
+            Matchers.equalTo("064EA88A18650615410970219992D54DA5CEFAE194A23FCBE3C3AF484CB3F501")
+        );
+    }
+
+    @Test
+    void copySingleThread(@TempDir final Path tmp) throws Exception {
+        final Path src = tmp.resolve("source");
+        final Path dest = tmp.resolve("dst");
+        new TestResource("file.bin").copy(src);
+        final ExecutorService exec = Executors.newSingleThreadExecutor();
+        new File(dest).write(new File(src).content(Buffers.Standard.K16, exec), exec)
+            .toCompletableFuture().get();
         MatcherAssert.assertThat(
             bytesToHex(sha256().digest(Files.readAllBytes(dest))),
             Matchers.equalTo("064EA88A18650615410970219992D54DA5CEFAE194A23FCBE3C3AF484CB3F501")

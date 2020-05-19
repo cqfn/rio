@@ -8,12 +8,13 @@ import java.nio.channels.FileChannel;
  * Runnable decorator which closes channel on exit.
  * @since 0.1
  */
-final class CloseChanOnExit implements Runnable {
+final class CloseChanOnError implements Runnable {
 
     private final Runnable origin;
+
     private final FileChannel chan;
 
-    CloseChanOnExit(final Runnable origin, final FileChannel chan) {
+    CloseChanOnError(final Runnable origin, final FileChannel chan) {
         this.origin = origin;
         this.chan = chan;
     }
@@ -22,8 +23,9 @@ final class CloseChanOnExit implements Runnable {
     public void run() {
         try {
             this.origin.run();
-        } finally {
+        } catch (final Throwable err) {
             this.close();
+            throw err;
         }
     }
 
