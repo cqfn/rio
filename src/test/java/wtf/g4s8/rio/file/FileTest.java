@@ -39,6 +39,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.reactivestreams.Publisher;
@@ -167,6 +168,7 @@ public final class FileTest {
 
     @Test
     @Timeout(2)
+    @EnabledIfSystemProperty(named = "test.hugeFiles", matches = "true|yes|on|1")
     void writeHugeFile(@TempDir final Path tmp,
         @BufferSource(buffers = 1024 * 1024) final Publisher<ByteBuffer> source) throws Exception {
         final Path target = tmp.resolve("target");
@@ -175,11 +177,14 @@ public final class FileTest {
 
     @Test
     @Timeout(2)
+    @EnabledIfSystemProperty(named = "test.hugeFiles", matches = "true|yes|on|1")
     void writeAndReadHugeFile(@TempDir final Path tmp,
         @BufferSource(buffers = 1024 * 1024) final Publisher<ByteBuffer> source) throws Exception {
         final Path target = tmp.resolve("target");
         new File(target).write(source, WriteGreed.SYSTEM).toCompletableFuture().get();
-        final long size = Flowable.fromPublisher(new File(target).content()).reduce(0L, (acc, buf) -> acc + buf.remaining()).blockingGet();
+        final long size = Flowable.fromPublisher(
+            new File(target).content()).reduce(0L, (acc, buf) -> acc + buf.remaining()
+        ).blockingGet();
         MatcherAssert.assertThat(size, Matchers.equalTo(1024 * 1024 * 1024L));
     }
 
