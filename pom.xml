@@ -2,7 +2,7 @@
 <!--
 MIT License
 
-Copyright (c) 2020 g4s8
+Copyright (c) 2020 cqfn.org
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files
@@ -25,7 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>wtf.g4s8</groupId>
+  <groupId>org.cqfn</groupId>
   <artifactId>rio</artifactId>
   <version>1.0-SNAPSHOT</version>
   <parent>
@@ -33,24 +33,48 @@ OTHER DEALINGS IN THE SOFTWARE.
     <artifactId>ppom</artifactId>
     <version>0.3.6</version>
   </parent>
-  <url>https://github.com/g4s8/rio</url>
+  <url>https://github.com/cqfn/rio</url>
   <licenses>
     <license>
       <name>MIT License</name>
-      <url>https://github.com/g4s8/rio/blob/master/LICENSE.txt</url>
+      <url>https://github.com/cqfn/rio/blob/master/LICENSE.txt</url>
     </license>
   </licenses>
+  <repositories>
+    <repository>
+      <name>Artipie central</name>
+      <id>central.artipie.com</id>
+      <url>https://central.artipie.com/cqfn/maven</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
   <developers>
     <developer>
-      <name>Kirill Che. (g4s8)</name>
+      <id>g4s8</id>
+      <name>Kirill Che.</name>
       <email>g4s8.public@gmail.com</email>
+      <url>https://g4s8.wtf</url>
+      <roles>
+        <role>architect</role>
+        <role>developer</role>
+      </roles>
     </developer>
   </developers>
+  <organization>
+    <name>CQFN</name>
+    <url>https://www.cqfn.org</url>
+  </organization>
   <scm>
     <connection>scm:git:git://github.com/g4s8/rio.git</connection>
-    <developerConnection>scm:git:ssh://github.com:g4s8/rio.git</developerConnection>
-    <url>https://github.com/g4s8/rio/tree/master</url>
+    <developerConnection>scm:git:ssh://github.com:cqfn/rio.git</developerConnection>
+    <url>https://github.com/cqfn/rio/tree/master</url>
   </scm>
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/cqfn/rio</url>
+  </issueManagement>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -207,4 +231,19 @@ OTHER DEALINGS IN THE SOFTWARE.
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>artipie-central</id>
+      <distributionManagement>
+      <repository>
+        <id>artipie-central</id>
+        <url>https://central.artipie.com/cqfn/maven</url>
+      </repository>
+      <snapshotRepository>
+        <id>artipie-central</id>
+        <url>https://central.artipie.com/cqfn/maven</url>
+      </snapshotRepository>
+    </distributionManagement>
+    </profile>
+  </profiles>
 </project>

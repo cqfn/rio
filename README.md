@@ -12,9 +12,28 @@ Reactive Input Output objects for Java:
 Add Maven dependency to `pom.xml`:
 ```xml
 <dependency>
-  <groupId>wtf.g4s8</groupId>
+  <groupId>org.cqfn</groupId>
   <artifactId>rio</artifactId>
-  <version><!-- see latest release -->
+  <version><!-- see latest release --></version>
+</dependency>
+```
+
+Or use snapshot from `central.artipie.com`:
+```xml
+<repositories>
+  <repository>
+    <name>Artipie central</name>
+    <id>central.artipie.com</id>
+    <url>https://central.artipie.com/cqfn/maven</url>
+    <snapshots>
+      <enabled>true</enabled>
+    </snapshots>
+  </repository>
+</repositories>
+<dependency>
+  <groupId>org.cqfn</groupId>
+  <artifactId>rio</artifactId>
+  <version>1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -27,8 +46,7 @@ by various methods in main entry points.
 
 To create new reactive file instance use constructor:
 ```java
-import java.nio.file.Paths;
-import wtf.g4s8.rio.file.File;
+
 
 var file = new File(Paths.get("/tmp/my/file.txt"));
 ```
@@ -37,9 +55,7 @@ var file = new File(Paths.get("/tmp/my/file.txt"));
 
 To read the file use `Publisher<ByteBuffer> content()` method of `File` object:
 ```java
-import java.nio.file.Paths;
-import org.reactivestreams.Publisher;
-import wtf.g4s8.rio.file.File;
+
 
 Publisher<ByteBuffer> content = new File(Paths.get("/tmp/my/file.txt")).content();
 ```
@@ -61,9 +77,7 @@ method:
 
 ```java
 
-import java.nio.file.Paths;
-import org.reactivestreams.Publisher;
-import wtf.g4s8.rio.file.File;
+
 
 CompletionStage<Void> result = new File(Paths.get("/tmp/my/file.txt")).write(data);
 ```
