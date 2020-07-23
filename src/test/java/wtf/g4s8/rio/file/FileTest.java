@@ -24,9 +24,7 @@
  */
 package wtf.g4s8.rio.file;
 
-import io.reactivex.Emitter;
 import io.reactivex.Flowable;
-import io.reactivex.functions.Consumer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -34,17 +32,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.reactivestreams.Publisher;
+import wtf.g4s8.rio.ext.BufferSource;
+import wtf.g4s8.rio.ext.BufferSourceExtension;
 
 /**
  * Test case for {@link File}.
@@ -53,6 +53,7 @@ import org.junit.jupiter.api.io.TempDir;
  * @checkstyle MagicNumberCheck (500 lines)
  */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+@ExtendWith(BufferSourceExtension.class)
 public final class FileTest {
 
     /**
@@ -103,16 +104,15 @@ public final class FileTest {
     }
 
     @RepeatedTest(1000)
-    void writeFile(@TempDir final Path tmp) throws Exception {
+    void writeFile(@TempDir final Path tmp,
+        @BufferSource(buffers = 10) final Publisher<ByteBuffer> source) throws Exception {
         final Path out = tmp.resolve("out.bin");
-        new File(out).write(
-            Flowable.generate(new WriteTestSource(1024, 10))
-        ).thenRun(
+        new File(out).write(source).thenRun(
             () -> {
                 try {
                     MatcherAssert.assertThat(
                         bytesToHex(sha256().digest(Files.readAllBytes(out))),
-                        Matchers.equalTo("AFF310597FAB48A0CE2689C8221AF0D86D50E2A06B5D9CA6838A3FBF6754CC23")
+                        Matchers.equalTo("84FF92691F909A05B224E1C56ABB4864F01B4F8E3C854E4BB4C7BAF1D3F6D652")
                     );
                 } catch (IOException e) {
                     throw new IllegalStateException(e);
@@ -168,12 +168,24 @@ public final class FileTest {
 
     @Test
     @Timeout(2)
-    @EnabledIfSystemProperty(named = "test.huge", matches = "true")
-    void writeHugeFile(@TempDir final Path tmp) throws Exception {
+    @EnabledIfSystemProperty(named = "test.hugeFiles", matches = "true|yes|on|1")
+    void writeHugeFile(@TempDir final Path tmp,
+        @BufferSource(buffers = 1024 * 1024) final Publisher<ByteBuffer> source) throws Exception {
         final Path target = tmp.resolve("target");
-        new File(target).write(
-            Flowable.generate(new WriteTestSource(1024, 1024 * 1024))
-        ).toCompletableFuture().get();
+        new File(target).write(source, WriteGreed.SYSTEM).toCompletableFuture().get();
+    }
+
+    @Test
+    @Timeout(2)
+    @EnabledIfSystemProperty(named = "test.hugeFiles", matches = "true|yes|on|1")
+    void writeAndReadHugeFile(@TempDir final Path tmp,
+        @BufferSource(buffers = 1024 * 1024) final Publisher<ByteBuffer> source) throws Exception {
+        final Path target = tmp.resolve("target");
+        new File(target).write(source, WriteGreed.SYSTEM).toCompletableFuture().get();
+        final long size = Flowable.fromPublisher(
+            new File(target).content()).reduce(0L, (acc, buf) -> acc + buf.remaining()
+        ).blockingGet();
+        MatcherAssert.assertThat(size, Matchers.equalTo(1024 * 1024 * 1024L));
     }
 
     /**
@@ -214,50 +226,5 @@ public final class FileTest {
             res[pos] = src[pos];
         }
         return res;
-    }
-
-    /**
-     * Provider of byte buffers for write test.
-     * @since 0.1
-     */
-    private static final class WriteTestSource implements Consumer<Emitter<ByteBuffer>> {
-
-        /**
-         * Counter.
-         */
-        private final AtomicInteger cnt;
-
-        /**
-         * Amount of buffers.
-         */
-        private final int length;
-
-        /**
-         * Buffer size.
-         */
-        private final int size;
-
-        /**
-         * New test source.
-         * @param size Buffer size
-         * @param length Amount of buffers
-         */
-        WriteTestSource(final int size, final int length) {
-            this.cnt = new AtomicInteger();
-            this.size = size;
-            this.length = length;
-        }
-
-        @Override
-        public void accept(final Emitter<ByteBuffer> src) {
-            final int val = this.cnt.getAndIncrement();
-            if (val < this.length) {
-                final byte[] data = new byte[this.size];
-                Arrays.fill(data, (byte) val);
-                src.onNext(ByteBuffer.wrap(data));
-            } else {
-                src.onComplete();
-            }
-        }
     }
 }
