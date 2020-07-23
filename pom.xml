@@ -174,7 +174,7 @@ OTHER DEALINGS IN THE SOFTWARE.
                     <limit>
                       <counter>BRANCH</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.59</minimum>
+                      <minimum>0.58</minimum>
                     </limit>
                     <limit>
                       <counter>COMPLEXITY</counter>
