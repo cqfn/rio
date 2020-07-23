@@ -27,11 +27,11 @@ OTHER DEALINGS IN THE SOFTWARE.
   <modelVersion>4.0.0</modelVersion>
   <groupId>wtf.g4s8</groupId>
   <artifactId>rio</artifactId>
-  <version>0.1.2</version>
+  <version>1.0-SNAPSHOT</version>
   <parent>
     <groupId>com.artipie</groupId>
     <artifactId>ppom</artifactId>
-    <version>0.3.2</version>
+    <version>0.3.6</version>
   </parent>
   <url>https://github.com/g4s8/rio</url>
   <licenses>
@@ -63,6 +63,11 @@ OTHER DEALINGS IN THE SOFTWARE.
       <groupId>org.reactivestreams</groupId>
       <artifactId>reactive-streams</artifactId>
       <version>${versions.reactive-streams}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jctools</groupId>
+      <artifactId>jctools-core</artifactId>
+      <version>3.0.0</version>
     </dependency>
     <dependency>
       <groupId>org.reactivestreams</groupId>

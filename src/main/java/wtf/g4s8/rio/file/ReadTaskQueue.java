@@ -29,15 +29,15 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.jctools.queues.SpscUnboundedArrayQueue;
 
 /**
  * Read loop for read requests.
  * @since 0.1
  */
-public final class ReadTaskQueue implements Runnable {
+final class ReadTaskQueue implements Runnable {
 
     /**
      * Requests queue.
@@ -54,38 +54,45 @@ public final class ReadTaskQueue implements Runnable {
      */
     private final FileChannel channel;
 
+    /**
+     * Exeutor service.
+     */
     private final Executor exec;
 
-    private final AtomicBoolean running = new AtomicBoolean();
+    /**
+     * Running flag.
+     */
+    private final AtomicBoolean running;
 
     /**
      * New busy loop.
      * @param sub Subscriber
      * @param channel File channel
-     * @param exec
+     * @param exec Executor service to process tasks
      */
     public ReadTaskQueue(final ReadSubscriberState<? super ByteBuffer> sub,
         final FileChannel channel, final Executor exec) {
-        this.queue = new ConcurrentLinkedQueue<>();
+        this.queue = new SpscUnboundedArrayQueue<>(128);
         this.sub = sub;
         this.exec = exec;
         this.channel = channel;
+        this.running = new AtomicBoolean();
     }
 
     @Override
     public void run() {
         while (!this.sub.done()) {
             ReadRequest next = this.queue.poll();
-            boolean empty = next == null;
-            if (empty) {
+            if (next == null) {
                 this.running.set(false);
-                next = this.queue.peek();
-                empty = next == null;
-                if (!empty && this.running.compareAndSet(false, true)) {
+                if (!this.queue.isEmpty() && this.running.compareAndSet(false, true)) {
                     if (this.sub.done()) {
                         break;
                     }
-                    this.queue.remove(next);
+                    next = this.queue.poll();
+                    if (next == null) {
+                        continue;
+                    }
                 } else {
                     return;
                 }
@@ -101,6 +108,10 @@ public final class ReadTaskQueue implements Runnable {
         }
     }
 
+    /**
+     * Asks queue to accept read request.
+     * @param request Request to accept
+     */
     public void accept(final ReadRequest request) {
         if (this.sub.done()) {
             return;
@@ -116,6 +127,9 @@ public final class ReadTaskQueue implements Runnable {
         }
     }
 
+    /**
+     * Asks queue to clear itself.
+     */
     public void clear() {
         this.queue.clear();
     }

@@ -29,15 +29,16 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.jctools.queues.SpscUnboundedArrayQueue;
 import org.reactivestreams.Subscription;
 
 /**
  * Write subscription runnable task loop.
  * @since 0.1
+ * @checkstyle MethodBodyCommentsCheck (500 lines)
  */
 final class WriteTaskQueue implements Runnable {
 
@@ -66,6 +67,9 @@ final class WriteTaskQueue implements Runnable {
      */
     private final WriteGreed greed;
 
+    /**
+     * Executor service.
+     */
     private final Executor exec;
 
     /**
@@ -79,7 +83,7 @@ final class WriteTaskQueue implements Runnable {
      * @param channel File channel
      * @param sub Subscription reference
      * @param greed Greed level
-     * @param exec
+     * @param exec Executor service
      * @checkstyle ParameterNumberCheck (5 lines)
      */
     WriteTaskQueue(final CompletableFuture<Void> future, final FileChannel channel,
@@ -88,7 +92,7 @@ final class WriteTaskQueue implements Runnable {
         this.future = future;
         this.channel = channel;
         this.sub = sub;
-        this.queue = new ConcurrentLinkedQueue<>();
+        this.queue = new SpscUnboundedArrayQueue<>(128);
         this.greed = greed;
         this.exec = exec;
     }
@@ -100,24 +104,23 @@ final class WriteTaskQueue implements Runnable {
             final boolean requested = this.greed.request(this.sub.get());
             WriteRequest next = this.queue.poll();
             // if no next item, try to exit the loop
-            boolean empty = next == null;
+            final boolean empty = next == null;
             if (!requested && empty) {
                 continue;
             }
             if (empty) {
                 // mark this loop as finished
                 this.running.set(false);
-                // check if any next item available
-                next = this.queue.peek();
-                empty = next == null;
                 // recover - if next item available and this loop is still not running
                 // continue running this loop and process it
-                if (!empty && this.running.compareAndSet(false, true)) {
+                if (!this.queue.isEmpty() && this.running.compareAndSet(false, true)) {
                     if (this.future.isDone()) {
                         break;
                     }
-                    // remove peeked item
-                    this.queue.remove(next);
+                    next = this.queue.poll();
+                    if (next == null) {
+                        continue;
+                    }
                 } else {
                     // if empty or acquired by next loop - exit
                     return;
@@ -136,6 +139,10 @@ final class WriteTaskQueue implements Runnable {
         this.running.set(false);
     }
 
+    /**
+     * Asks to accept write request.
+     * @param req Write request
+     */
     public void accept(final WriteRequest req) {
         if (this.future.isDone()) {
             return;
