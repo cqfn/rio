@@ -30,6 +30,7 @@ import org.reactivestreams.Subscription;
 
 /**
  * Read subscriber wrapper which remembers current state.
+ * @param <T> Subscriber target type
  * @since 0.1
  */
 final class ReadSubscriberState<T> implements Subscriber<T> {
@@ -48,7 +49,7 @@ final class ReadSubscriberState<T> implements Subscriber<T> {
      * Decorates subscriber.
      * @param origin Subscriber to decorate
      */
-    public ReadSubscriberState(final Subscriber<T> origin) {
+    ReadSubscriberState(final Subscriber<T> origin) {
         this.origin = origin;
         this.completed = new AtomicBoolean();
     }

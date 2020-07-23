@@ -34,10 +34,12 @@ import java.util.concurrent.CompletableFuture;
  * Request to write.
  * @since 0.1
  */
+@SuppressWarnings("PMD.MissingStaticMethodInNonInstantiatableClass")
 abstract class WriteRequest {
 
     /**
      * Write future.
+     * @checkstyle VisibilityModifierCheck (5 lines)
      */
     protected final CompletableFuture<Void> future;
 
@@ -71,7 +73,7 @@ abstract class WriteRequest {
          * @param future Future
          * @param target Buffer
          */
-        public Next(final CompletableFuture<Void> future, final ByteBuffer target) {
+        Next(final CompletableFuture<Void> future, final ByteBuffer target) {
             super(future);
             this.target = target;
         }
@@ -112,7 +114,7 @@ abstract class WriteRequest {
          * New complete signal.
          * @param future Write future
          */
-        public Complete(final CompletableFuture<Void> future) {
+        Complete(final CompletableFuture<Void> future) {
             super(future);
         }
 
@@ -149,9 +151,14 @@ abstract class WriteRequest {
          * @param future Write future
          * @param err Error
          */
-        public Error(final CompletableFuture<Void> future, final Throwable err) {
+        Error(final CompletableFuture<Void> future, final Throwable err) {
             super(future);
             this.err = err;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("Error: %s", this.err.getMessage());
         }
 
         @Override
@@ -166,24 +173,19 @@ abstract class WriteRequest {
             }
             this.future.completeExceptionally(this.err);
         }
-
-        @Override
-        public String toString() {
-            return String.format("Error: %s", this.err.getMessage());
-        }
     }
 
     /**
      * Init request.
      * @since 0.2
      */
-    public static final class Init extends WriteRequest {
+    static final class Init extends WriteRequest {
 
         /**
          * Ctor.
          * @param future Write future
          */
-        public Init(final CompletableFuture<Void> future) {
+        Init(final CompletableFuture<Void> future) {
             super(future);
         }
 

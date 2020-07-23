@@ -88,7 +88,6 @@ public final class File {
         return new ReadFlow(this.path, Buffers.Standard.K8, exec);
     }
 
-
     /**
      * File's content.
      * @param buf Buffers policy
@@ -141,7 +140,10 @@ public final class File {
      * @param exec Executor service to perform IO operations
      * @param opts Options
      * @return Future
+     * @checkstyle ReturnCountCheck (20 lines)
+     * @checkstyle ParameterNumberCheck (7 lines)
      */
+    @SuppressWarnings("PMD.OnlyOneReturn")
     public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
         final WriteGreed greed,
         final ExecutorService exec,
@@ -170,7 +172,7 @@ public final class File {
      * @param src User specified options
      * @return Fixed options
      */
-    private static OpenOption[] writeOpts(final OpenOption[] src) {
+    private static OpenOption[] writeOpts(final OpenOption... src) {
         final OpenOption[] opts;
         if (src.length == 0) {
             opts = new OpenOption[]{StandardOpenOption.WRITE, StandardOpenOption.CREATE};

@@ -37,8 +37,11 @@ import org.reactivestreams.Subscription;
 
 /**
  * Write subscription runnable task loop.
+ *
  * @since 0.1
  * @checkstyle MethodBodyCommentsCheck (500 lines)
+ * @checkstyle CyclomaticComplexityCheck (500 lines)
+ * @checkstyle NestedIfDepthCheck (500 lines)
  */
 final class WriteTaskQueue implements Runnable {
 
@@ -75,7 +78,7 @@ final class WriteTaskQueue implements Runnable {
     /**
      * Running atomic flag.
      */
-    private final AtomicBoolean running = new AtomicBoolean();
+    private final AtomicBoolean running;
 
     /**
      * Ctor.
@@ -85,6 +88,7 @@ final class WriteTaskQueue implements Runnable {
      * @param greed Greed level
      * @param exec Executor service
      * @checkstyle ParameterNumberCheck (5 lines)
+     * @checkstyle MagicNumberCheck (10 lines)
      */
     WriteTaskQueue(final CompletableFuture<Void> future, final FileChannel channel,
         final AtomicReference<Subscription> sub,
@@ -95,9 +99,11 @@ final class WriteTaskQueue implements Runnable {
         this.queue = new SpscUnboundedArrayQueue<>(128);
         this.greed = greed;
         this.exec = exec;
+        this.running = new AtomicBoolean();
     }
 
     @Override
+    @SuppressWarnings("PMD.CyclomaticComplexity")
     public void run() {
         while (!this.future.isDone()) {
             // requesting next chunk of byte buffers according to greed strategy

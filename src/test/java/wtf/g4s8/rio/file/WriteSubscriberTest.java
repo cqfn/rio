@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.tck.SubscriberBlackboxVerification;
@@ -44,23 +45,28 @@ import org.testng.annotations.BeforeClass;
  * Test case for {@link WriteSubscriber}.
  *
  * @since 1.0
- * @checkstyle JavadocMethodCheck (500 lines)
+ * @checkstyle MagicNumberCheck (500 lines)
  */
-@SuppressWarnings({"PMD.TestClassWithoutTestCases", "PMD.OnlyOneReturn"})
-public final class WriteSubscriberTest extends SubscriberBlackboxVerification<ByteBuffer> {
-
-    @BeforeClass
-    public void setUp() {
-        if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            throw new SkipException("Disabled for windows");
-        }
+@SuppressWarnings(
+    {
+        "PMD.TestClassWithoutTestCases", "PMD.OnlyOneReturn",
+        "PMD.JUnit4TestShouldUseBeforeAnnotation"
     }
+)
+public final class WriteSubscriberTest extends SubscriberBlackboxVerification<ByteBuffer> {
 
     /**
      * Ctor.
      */
     public WriteSubscriberTest() {
         super(new TestEnvironment());
+    }
+
+    @BeforeClass
+    public void setUp() {
+        if (System.getProperty("os.name").toLowerCase(Locale.US).contains("win")) {
+            throw new SkipException("Disabled for windows");
+        }
     }
 
     @Override

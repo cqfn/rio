@@ -33,11 +33,14 @@ import java.nio.channels.FileChannel;
 /**
  * Read request.
  * @since 0.1
+ * @checkstyle ExecutableStatementCountCheck (500 lines)
  */
+@SuppressWarnings("PMD.MissingStaticMethodInNonInstantiatableClass")
 abstract class ReadRequest {
 
     /**
      * Flow subscriber.
+     * @checkstyle VisibilityModifierCheck (5 lines)
      */
     protected final ReadSubscriberState<? super ByteBuffer> sub;
 
@@ -53,7 +56,7 @@ abstract class ReadRequest {
      * Process file channel.
      * @param channel Channel to process
      */
-    abstract void process(final FileChannel channel);
+    abstract void process(FileChannel channel);
 
     /**
      * Next request.
@@ -74,6 +77,7 @@ abstract class ReadRequest {
         /**
          * New read request.
          * @param sub Subscriber
+         * @param buffers Buffer allocation strategy
          * @param count Amount of requests
          */
         Next(final ReadSubscriberState<? super ByteBuffer> sub, final Buffers buffers,
@@ -83,9 +87,11 @@ abstract class ReadRequest {
             this.count = count;
         }
 
+        // @checkstyle ReturnCountCheck (50 lines)
         @Override
+        @SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidCatchingGenericException"})
         void process(final FileChannel channel) {
-            for (int i = 0; i < this.count; ++i) {
+            for (int cnt = 0; cnt < this.count; ++cnt) {
                 if (this.sub.done()) {
                     return;
                 }
@@ -109,6 +115,7 @@ abstract class ReadRequest {
                 if (read >= 0) {
                     try {
                         this.sub.onNext(buf);
+                        // @checkstyle IllegalCatchCheck (1 line)
                     } catch (final Exception exx) {
                         try {
                             channel.close();

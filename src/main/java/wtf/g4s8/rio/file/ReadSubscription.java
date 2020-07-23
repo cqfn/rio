@@ -43,7 +43,9 @@ final class ReadSubscription implements Subscription {
      */
     private final Buffers buffers;
 
-
+    /**
+     * Tasks queue.
+     */
     private final ReadTaskQueue queue;
 
     /**
@@ -66,10 +68,12 @@ final class ReadSubscription implements Subscription {
         }
         if (count <= 0) {
             this.queue.clear();
-            this.sub.onError(new IllegalArgumentException(String.format("Requested %d items", count)));
-            return;
+            this.sub.onError(
+                new IllegalArgumentException(String.format("Requested %d items", count))
+            );
+        } else {
+            this.queue.accept(new ReadRequest.Next(this.sub, this.buffers, count));
         }
-        this.queue.accept(new ReadRequest.Next(this.sub, this.buffers, count));
     }
 
     @Override

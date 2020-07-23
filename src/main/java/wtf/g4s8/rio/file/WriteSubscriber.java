@@ -54,15 +54,21 @@ final class WriteSubscriber extends CompletableFuture<Void> implements Subscribe
      */
     private final ExecutorService exec;
 
+    /**
+     * Write greed level.
+     */
     private final WriteGreed greed;
 
+    /**
+     * Tasks queue for write requests.
+     */
     private WriteTaskQueue queue;
 
     /**
      * New write subscriber.
      * @param chan File channel
      * @param greed Consumer greed level
-     * @param exec
+     * @param exec Executor service to process requests
      */
     WriteSubscriber(final FileChannel chan, final WriteGreed greed, final ExecutorService exec) {
         this.chan = chan;

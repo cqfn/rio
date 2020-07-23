@@ -31,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
@@ -43,16 +44,15 @@ import org.testng.annotations.BeforeClass;
  *
  * @since 0.1
  * @checkstyle JavadocMethodCheck (500 lines)
+ * @checkstyle MagicNumberCheck (500 lines)
  */
-@SuppressWarnings({"PMD.TestClassWithoutTestCases", "PMD.OnlyOneReturn"})
-public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
-
-    @BeforeClass
-    public void setUp() {
-        if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            throw new SkipException("Disabled for windows");
-        }
+@SuppressWarnings(
+    {
+        "PMD.TestClassWithoutTestCases", "PMD.OnlyOneReturn",
+        "PMD.JUnit4TestShouldUseBeforeAnnotation"
     }
+)
+public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
 
     /**
      * Ctor.
@@ -61,6 +61,14 @@ public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
         super(new TestEnvironment());
     }
 
+    @BeforeClass
+    public void setUp() {
+        if (System.getProperty("os.name").toLowerCase(Locale.US).contains("win")) {
+            throw new SkipException("Disabled for windows");
+        }
+    }
+
+    // @checkstyle ReturnCountCheck (50 lines)
     @Override
     public Publisher<ByteBuffer> createPublisher(final long size) {
         if (size == 0) {
