@@ -1,3 +1,27 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2020 g4s8
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights * to use, copy, modify,
+ * merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
 package wtf.g4s8.rio.ext;
 
 import io.reactivex.Emitter;
@@ -13,8 +37,8 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import org.reactivestreams.Publisher;
 
 /**
- *
- * @since
+ * Buffer source extension for {@link BufferSource}.
+ * @since 0.2
  */
 public final class BufferSourceExtension implements ParameterResolver {
 
@@ -33,11 +57,19 @@ public final class BufferSourceExtension implements ParameterResolver {
             );
         }
         return BufferSourceExtension.publisher(
-            param.findAnnotation(BufferSource.class)
-                .orElseThrow(() -> new IllegalArgumentException("Parameter was not annotation with @BufferSource"))
+            param.findAnnotation(BufferSource.class).orElseThrow(
+                () -> new IllegalArgumentException(
+                    "Parameter was not annotation with @BufferSource"
+                )
+            )
         );
     }
 
+    /**
+     * Create publisher for configuration.
+     * @param config Configuration annotation
+     * @return Publisher
+     */
     private static Publisher<ByteBuffer> publisher(final BufferSource config) {
         final ByteBuffer source = ByteBuffer.allocateDirect(config.bufferSize());
         for (int pos = 0; pos < config.bufferSize(); ++pos) {

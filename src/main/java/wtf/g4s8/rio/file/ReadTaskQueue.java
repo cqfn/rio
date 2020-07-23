@@ -36,6 +36,7 @@ import org.jctools.queues.SpscUnboundedArrayQueue;
 /**
  * Read loop for read requests.
  * @since 0.1
+ * @checkstyle NestedIfDepthCheck (500 lines)
  */
 final class ReadTaskQueue implements Runnable {
 
@@ -69,8 +70,9 @@ final class ReadTaskQueue implements Runnable {
      * @param sub Subscriber
      * @param channel File channel
      * @param exec Executor service to process tasks
+     * @checkstyle MagicNumberCheck (10 lines)
      */
-    public ReadTaskQueue(final ReadSubscriberState<? super ByteBuffer> sub,
+    ReadTaskQueue(final ReadSubscriberState<? super ByteBuffer> sub,
         final FileChannel channel, final Executor exec) {
         this.queue = new SpscUnboundedArrayQueue<>(128);
         this.sub = sub;

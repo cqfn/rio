@@ -48,6 +48,7 @@ public interface WriteGreed {
     /**
      * Request next chunks from subscription.
      * @param sub Subscription to request
+     * @return True if reuqested successfully
      */
     boolean request(Subscription sub);
 
@@ -83,6 +84,7 @@ public interface WriteGreed {
          * @param amount Amount to request
          * @param shift Request items before shifted amount was processed
          */
+        @SuppressWarnings("PMD.ConstructorOnlyInitializesOrCallOtherConstructors")
         public Constant(final long amount, final long shift) {
             if (shift >= amount) {
                 throw new IllegalArgumentException("Shift should be less than amount");
@@ -94,13 +96,17 @@ public interface WriteGreed {
 
         @Override
         public boolean request(final Subscription sub) {
+            // @checkstyle AvoidInlineConditionalsCheck (1 line)
             final long pos = this.cnt.updateAndGet(prev -> prev <= this.shift ? this.amount : prev);
+            final boolean result;
             if (pos == this.amount) {
                 sub.request(this.amount);
-                return true;
+                result = true;
+            } else {
+                this.cnt.decrementAndGet();
+                result = false;
             }
-            this.cnt.decrementAndGet();
-            return false;
+            return result;
         }
     }
 }

@@ -52,7 +52,7 @@ import wtf.g4s8.rio.ext.BufferSourceExtension;
  * @since 0.1
  * @checkstyle MagicNumberCheck (500 lines)
  */
-@SuppressWarnings("PMD.AvoidDuplicateLiterals")
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.TooManyMethods"})
 @ExtendWith(BufferSourceExtension.class)
 public final class FileTest {
 
@@ -65,7 +65,9 @@ public final class FileTest {
     void readsContent(@TempDir final Path tmp) throws Exception {
         final Path file = tmp.resolve("test");
         new TestResource("file.bin").copy(file);
-        final String sha256 = Flowable.fromPublisher(new File(file).content(Buffers.Standard.K1)).reduceWith(
+        final String sha = Flowable.fromPublisher(
+            new File(file).content(Buffers.Standard.K1)
+        ).reduceWith(
             () -> MessageDigest.getInstance("SHA-256"),
             (digest, buf) -> {
                 digest.update(buf);
@@ -73,33 +75,10 @@ public final class FileTest {
             }
         ).map(MessageDigest::digest).map(FileTest::bytesToHex).blockingGet();
         MatcherAssert.assertThat(
-            sha256,
-            Matchers.equalTo("064EA88A18650615410970219992D54DA5CEFAE194A23FCBE3C3AF484CB3F501")
-        );
-    }
-
-    /**
-     * This test is supposed to verify valid usage of {@link java.lang.ref.WeakReference}
-     * in {@link ReadFlow}.
-     * @param tmp Temporary folder
-     * @throws Exception On error
-     */
-    @RepeatedTest(10)
-    void readsContentWithGarbageCollection(@TempDir final Path tmp) throws Exception {
-        final Path file = tmp.resolve("test");
-        new TestResource("file.bin").copy(file);
-        final String sha256 = Flowable.fromPublisher(new File(file).content(Buffers.Standard.K1)).reduceWith(
-            () -> MessageDigest.getInstance("SHA-256"),
-            (digest, buf) -> {
-                digest.update(buf);
-                Thread.sleep(10);
-                System.gc();
-                return digest;
-            }
-        ).map(MessageDigest::digest).map(FileTest::bytesToHex).blockingGet();
-        MatcherAssert.assertThat(
-            sha256,
-            Matchers.equalTo("064EA88A18650615410970219992D54DA5CEFAE194A23FCBE3C3AF484CB3F501")
+            sha,
+            Matchers.equalTo(
+                "064EA88A18650615410970219992D54DA5CEFAE194A23FCBE3C3AF484CB3F501"
+            )
         );
     }
 
@@ -112,10 +91,12 @@ public final class FileTest {
                 try {
                     MatcherAssert.assertThat(
                         bytesToHex(sha256().digest(Files.readAllBytes(out))),
-                        Matchers.equalTo("84FF92691F909A05B224E1C56ABB4864F01B4F8E3C854E4BB4C7BAF1D3F6D652")
+                        Matchers.equalTo(
+                            "84FF92691F909A05B224E1C56ABB4864F01B4F8E3C854E4BB4C7BAF1D3F6D652"
+                        )
                     );
-                } catch (IOException e) {
-                    throw new IllegalStateException(e);
+                } catch (final IOException err) {
+                    throw new IllegalStateException(err);
                 }
             }
         ).toCompletableFuture().get();
@@ -145,7 +126,8 @@ public final class FileTest {
         final Path src = tmp.resolve("source");
         final Path dest = tmp.resolve("dst");
         new TestResource("file.bin").copy(src);
-        new File(dest).write(new File(src).content(Buffers.Standard.K1)).toCompletableFuture().get();
+        new File(dest)
+            .write(new File(src).content(Buffers.Standard.K1)).toCompletableFuture().get();
         MatcherAssert.assertThat(
             bytesToHex(sha256().digest(Files.readAllBytes(dest))),
             Matchers.equalTo("064EA88A18650615410970219992D54DA5CEFAE194A23FCBE3C3AF484CB3F501")
@@ -182,15 +164,15 @@ public final class FileTest {
         @BufferSource(buffers = 1024 * 1024) final Publisher<ByteBuffer> source) throws Exception {
         final Path target = tmp.resolve("target");
         new File(target).write(source, WriteGreed.SYSTEM).toCompletableFuture().get();
-        final long size = Flowable.fromPublisher(
-            new File(target).content()).reduce(0L, (acc, buf) -> acc + buf.remaining()
-        ).blockingGet();
+        final long size = Flowable.fromPublisher(new File(target).content())
+            .reduce(0L, (acc, buf) -> acc + buf.remaining()).blockingGet();
         MatcherAssert.assertThat(size, Matchers.equalTo(1024 * 1024 * 1024L));
     }
 
     /**
      * New SHA256 digest.
      * @return Message digest
+     * @checkstyle MethodNameCheck (5 lines)
      */
     private static MessageDigest sha256() {
         try {
@@ -206,13 +188,13 @@ public final class FileTest {
      * @return Hex string
      */
     private static String bytesToHex(final byte[] bytes) {
-        final byte[] hexChars = new byte[bytes.length * 2];
-        for (int j = 0; j < bytes.length; j++) {
-            final int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = FileTest.HEX_ARRAY[v >>> 4];
-            hexChars[j * 2 + 1] = FileTest.HEX_ARRAY[v & 0x0F];
+        final byte[] hex = new byte[bytes.length * 2];
+        for (int pos = 0; pos < bytes.length; ++pos) {
+            final int bte = bytes[pos] & 0xFF;
+            hex[pos * 2] = FileTest.HEX_ARRAY[bte >>> 4];
+            hex[pos * 2 + 1] = FileTest.HEX_ARRAY[bte & 0x0F];
         }
-        return new String(hexChars, StandardCharsets.UTF_8);
+        return new String(hex, StandardCharsets.UTF_8);
     }
 
     /**
@@ -220,6 +202,7 @@ public final class FileTest {
      * @param src Primitive array
      * @return Boxed array
      */
+    @SuppressWarnings("PMD.AvoidArrayLoops")
     private static Byte[] boxed(final byte[] src) {
         final Byte[] res = new Byte[src.length];
         for (int pos = 0; pos < src.length; ++pos) {

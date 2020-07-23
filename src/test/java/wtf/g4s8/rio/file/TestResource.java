@@ -37,6 +37,7 @@ import java.util.Objects;
 /**
  * Test resource data.
  * @since 0.1
+ * @checkstyle MagicNumberCheck (500 lines)
  */
 public final class TestResource {
 

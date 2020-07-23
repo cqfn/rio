@@ -67,7 +67,7 @@ final class ReadFlow implements Publisher<ByteBuffer> {
     private final Buffers buffers;
 
     /**
-     * Executor service for IO operations
+     * Executor service for IO operations.
      */
     private final ExecutorService exec;
 
@@ -90,7 +90,7 @@ final class ReadFlow implements Publisher<ByteBuffer> {
         try {
             chan = FileChannel.open(this.path, StandardOpenOption.READ);
         } catch (final IOException err) {
-            subscriber.onSubscribe(DUMMY);
+            subscriber.onSubscribe(ReadFlow.DUMMY);
             subscriber.onError(err);
             return;
         }
