@@ -3,8 +3,8 @@ Reactive Input Output objects for Java:
  - [RS-TCK](https://github.com/reactive-streams/reactive-streams-jvm/tree/master/tck) compatible (see tests for [publishers](https://github.com/g4s8/rio/blob/master/src/test/java/wtf/g4s8/rio/file/ReadFlowTest.java) and [subscribers](https://github.com/g4s8/rio/blob/master/src/test/java/wtf/g4s8/rio/file/WriteSubscriberTest.java))
  - Just one dependency: the only compile dependency is [JCTools](https://github.com/JCTools/JCTools) library with concurent queues
 
-[![Maven Build](https://github.com/g4s8/rio/workflows/Maven%20Build/badge.svg)](https://github.com/g4s8/rio/actions?query=workflow%3A%22Maven+Build%22)
-[![codecov](https://codecov.io/gh/g4s8/rio/branch/master/graph/badge.svg)](https://codecov.io/gh/g4s8/rio)
+[![Maven Build](https://github.com/cqfn/rio/workflows/Maven%20Build/badge.svg)](https://github.com/cqfn/rio/actions?query=workflow%3A%22Maven+Build%22)
+[![codecov](https://codecov.io/gh/cqfn/rio/branch/master/graph/badge.svg)](https://codecov.io/gh/cqfn/rio)
 [![Maven Central](https://img.shields.io/maven-central/v/wtf.g4s8/rio.svg)](https://maven-badges.herokuapp.com/maven-central/wtf.g4s8/rio)
 
 ## Install
