@@ -34,6 +34,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.cqfn.rio.ext.BufferSource;
 import org.cqfn.rio.ext.BufferSourceExtension;
 import org.hamcrest.MatcherAssert;
@@ -145,6 +146,26 @@ public final class FileTest {
         MatcherAssert.assertThat(
             bytesToHex(sha256().digest(Files.readAllBytes(dest))),
             Matchers.equalTo("064EA88A18650615410970219992D54DA5CEFAE194A23FCBE3C3AF484CB3F501")
+        );
+    }
+
+    @Test
+    void requestNextItemsOnlyOnDemand(@TempDir final Path tmp,
+        @BufferSource(buffers = 5) final Publisher<ByteBuffer> source) throws Exception {
+        final WriteGreed.Constant greed = new WriteGreed.Constant(3, 1);
+        final AtomicInteger requests = new AtomicInteger();
+        new File(tmp.resolve("output1")).write(
+            source,
+            sub -> {
+                final boolean requested = greed.request(sub);
+                if (requested) {
+                    requests.incrementAndGet();
+                }
+                return requested;
+            }
+        ).toCompletableFuture().get();
+        MatcherAssert.assertThat(
+            requests.get(), Matchers.is(3)
         );
     }
 

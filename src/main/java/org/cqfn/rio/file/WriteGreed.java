@@ -96,15 +96,10 @@ public interface WriteGreed {
 
         @Override
         public boolean request(final Subscription sub) {
-            // @checkstyle AvoidInlineConditionalsCheck (1 line)
-            final long pos = this.cnt.updateAndGet(prev -> prev <= this.shift ? this.amount : prev);
-            final boolean result;
-            if (pos == this.amount) {
+            final long pos = this.cnt.getAndIncrement();
+            final boolean result = pos == 0 || pos % (this.amount - this.shift + 1) == 0;
+            if (result) {
                 sub.request(this.amount);
-                result = true;
-            } else {
-                this.cnt.decrementAndGet();
-                result = false;
             }
             return result;
         }
