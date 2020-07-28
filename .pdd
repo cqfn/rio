@@ -1,7 +1,7 @@
 --source=.
 --verbose
 --exclude target/**/*
---exclude src/test/resources/**/*
+--exclude src/test/resources-binary/**/*
 --exclude .idea/**/*
 --rule min-words:15
 --rule min-estimate:15

@@ -133,6 +133,10 @@ OTHER DEALINGS IN THE SOFTWARE.
         <directory>${basedir}/src/test/resources</directory>
         <filtering>false</filtering>
       </testResource>
+      <testResource>
+        <directory>${basedir}/src/test/resources-binary</directory>
+        <filtering>false</filtering>
+      </testResource>
     </testResources>
     <plugins>
       <plugin>
@@ -230,6 +234,19 @@ OTHER DEALINGS IN THE SOFTWARE.
         </executions>
       </plugin>
     </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>com.qulice</groupId>
+          <artifactId>qulice-maven-plugin</artifactId>
+          <configuration>
+            <excludes combine.children="append">
+              <exclude>checkstyle:/src/test/resources-binary/.*</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
   <profiles>
     <profile>
