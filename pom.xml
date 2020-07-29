@@ -252,15 +252,15 @@ OTHER DEALINGS IN THE SOFTWARE.
     <profile>
       <id>artipie-central</id>
       <distributionManagement>
-      <repository>
-        <id>artipie-central</id>
-        <url>https://central.artipie.com/cqfn/maven</url>
-      </repository>
-      <snapshotRepository>
-        <id>artipie-central</id>
-        <url>https://central.artipie.com/cqfn/maven</url>
-      </snapshotRepository>
-    </distributionManagement>
+        <repository>
+          <id>artipie-central</id>
+          <url>https://central.artipie.com/cqfn/maven</url>
+        </repository>
+        <snapshotRepository>
+          <id>artipie-central</id>
+          <url>https://central.artipie.com/cqfn/maven</url>
+        </snapshotRepository>
+      </distributionManagement>
     </profile>
   </profiles>
 </project>
