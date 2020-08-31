@@ -25,7 +25,7 @@ release:
     gpg --allow-secret-key-import --no-tty --batch --import /home/r/secring.gpg
     mvn versions:set "-DnewVersion=${tag}" --settings ../settings.xml
     git commit -am "${tag}"
-    mvn clean deploy -Ppublish,sonatype,qulice,gpg-sign --errors --settings ../settings.xml
+    mvn clean deploy -Ppublish,sonatype,qulice,gpg-sign,cqfn --errors --settings ../settings.xml
 architect:
   - g4s8
 
