@@ -1,0 +1,31 @@
+docker:
+  image: g4s8/rultor:alpine3.10
+assets:
+  settings.xml: "cqfn/secrets#settings.xml"
+  pubring.gpg: "cqfn/secrets#pubring.gpg"
+  secring.gpg: "cqfn/secrets#secring.gpg"
+install: |
+  export LC_ALL=en_US.UTF-8
+  export LANG=en_US.UTF-8
+  export LANGUAGE=en_US.UTF-8
+merge:
+  script: |
+    echo We don't merge via Rultor
+    exit 1
+deploy:
+  script: |
+    echo There is nothing to deploy
+    exit 1
+release:
+  sensitive:
+    - settings.xml
+  script: |-
+    pdd -f /dev/null
+    gpg --import /home/r/pubring.gpg
+    gpg --allow-secret-key-import --no-tty --batch --import /home/r/secring.gpg
+    mvn versions:set "-DnewVersion=${tag}" --settings ../settings.xml
+    git commit -am "${tag}"
+    mvn clean deploy -Ppublish,sonatype,qulice,gpg-sign --errors --settings ../settings.xml
+architect:
+  - g4s8
+
