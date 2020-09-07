@@ -31,7 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
   <parent>
     <groupId>com.artipie</groupId>
     <artifactId>ppom</artifactId>
-    <version>0.3.9</version>
+    <version>0.3.10</version>
   </parent>
   <url>https://github.com/cqfn/rio</url>
   <licenses>
