@@ -165,7 +165,7 @@ public final class FileTest {
             }
         ).toCompletableFuture().get();
         MatcherAssert.assertThat(
-            requests.get(), Matchers.is(3)
+            requests.get(), Matchers.greaterThan(3)
         );
     }
 
