@@ -22,12 +22,12 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
 import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,7 +53,7 @@ final class ReadTaskQueue implements Runnable {
     /**
      * Channel.
      */
-    private final FileChannel channel;
+    private final ReadableByteChannel channel;
 
     /**
      * Exeutor service.
@@ -73,7 +73,7 @@ final class ReadTaskQueue implements Runnable {
      * @checkstyle MagicNumberCheck (10 lines)
      */
     ReadTaskQueue(final ReadSubscriberState<? super ByteBuffer> sub,
-        final FileChannel channel, final Executor exec) {
+        final ReadableByteChannel channel, final Executor exec) {
         this.queue = new SpscUnboundedArrayQueue<>(128);
         this.sub = sub;
         this.exec = exec;

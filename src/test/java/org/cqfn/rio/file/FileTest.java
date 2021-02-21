@@ -35,8 +35,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.cqfn.rio.Buffers;
+import org.cqfn.rio.WriteGreed;
 import org.cqfn.rio.ext.BufferSource;
 import org.cqfn.rio.ext.BufferSourceExtension;
+import org.cqfn.rio.ext.TestResource;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.RepeatedTest;
@@ -141,7 +144,7 @@ public final class FileTest {
         final Path dest = tmp.resolve("dst");
         new TestResource("file.bin").copy(src);
         final ExecutorService exec = Executors.newSingleThreadExecutor();
-        new File(dest).write(new File(src).content(Buffers.Standard.K16, exec), exec)
+        new File(dest).write(new File(src).content(Buffers.Standard.K1, exec), exec)
             .toCompletableFuture().get();
         MatcherAssert.assertThat(
             bytesToHex(sha256().digest(Files.readAllBytes(dest))),

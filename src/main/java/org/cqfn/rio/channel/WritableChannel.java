@@ -22,42 +22,46 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
 
+package org.cqfn.rio.channel;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
+import org.cqfn.rio.WriteGreed;
+import org.reactivestreams.Publisher;
 
 /**
- * Runnable decorator which shutdowns {@link ExecutorService} on exit.
- * @since 0.1
+ * Writable channel reactive representation.
+ * @since 0.2
  */
-final class ShutdownOnExit implements Runnable {
+public final class WritableChannel {
 
     /**
-     * Executor service.
+     * Channel source.
      */
-    private final ExecutorService exec;
+    private final ChannelSource<? extends WritableByteChannel> src;
 
     /**
-     * Origin runnable.
+     * Extend writable channel with methods to accept reactive publishers.
+     * @param src Writable channel source
      */
-    private final Runnable origin;
-
-    /**
-     * Wrap origin runnable.
-     * @param origin Origin runnable
-     * @param exec Executor to shutdown
-     */
-    ShutdownOnExit(final Runnable origin, final ExecutorService exec) {
-        this.exec = exec;
-        this.origin = origin;
+    public WritableChannel(final ChannelSource<? extends WritableByteChannel> src) {
+        this.src = src;
     }
 
-    @Override
-    public void run() {
-        try {
-            this.origin.run();
-        } finally {
-            this.exec.shutdown();
-        }
+    /**
+     * Write data from publisher into the channel.
+     * @param data Source
+     * @param greed Of data consumer
+     * @param exec Executor service
+     * @return Completable future for write operation and cancellation support
+     */
+    public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
+        final WriteGreed greed, final ExecutorService exec) {
+        final WritableChannelSubscriber sub = new WritableChannelSubscriber(this.src, greed, exec);
+        sub.acceptAsync(data);
+        return sub;
     }
 }

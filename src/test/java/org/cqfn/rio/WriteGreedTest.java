@@ -22,7 +22,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;

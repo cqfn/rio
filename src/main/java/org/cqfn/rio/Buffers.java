@@ -22,7 +22,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio;
 
 import java.nio.ByteBuffer;
 
@@ -35,18 +35,20 @@ import java.nio.ByteBuffer;
  * developer should care about all concurrency issues and be sure that this buffer is used
  * sequentially for read and write.
  * </p>
- * @since 0.1
- * @deprecated Use {@link org.cqfn.rio.Buffers} instead
+ * @since 0.2
  */
-@Deprecated
-public interface Buffers extends org.cqfn.rio.Buffers {
+public interface Buffers {
+
+    /**
+     * Create byte buffer.
+     * @return Byte buffer
+     */
+    ByteBuffer create();
 
     /**
      * Standard direct byte buffers.
-     * @deprecated Use {@link org.cqfn.rio.Buffers.Standard} instead
-     * @since 0.1
+     * @since 0.2
      */
-    @Deprecated
     enum Standard implements Buffers {
         /**
          * The smallest possible by buffer, can be used for debugging.

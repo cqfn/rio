@@ -22,7 +22,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.reactivestreams.Subscriber;

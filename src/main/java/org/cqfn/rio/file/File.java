@@ -24,18 +24,18 @@
  */
 package org.cqfn.rio.file;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.cqfn.rio.Buffers;
+import org.cqfn.rio.WriteGreed;
+import org.cqfn.rio.channel.ReadableChannel;
+import org.cqfn.rio.channel.WritableChannel;
 import org.reactivestreams.Publisher;
 
 /**
@@ -85,7 +85,7 @@ public final class File {
      * @return Content publisher
      */
     public Publisher<ByteBuffer> content(final ExecutorService exec) {
-        return new ReadFlow(this.path, Buffers.Standard.K8, exec);
+        return this.content(Buffers.Standard.K8, exec);
     }
 
     /**
@@ -95,7 +95,9 @@ public final class File {
      * @return Content publisher
      */
     public Publisher<ByteBuffer> content(final Buffers buf, final ExecutorService exec) {
-        return new ReadFlow(this.path, buf, exec);
+        return new ReadableChannel(
+            () -> FileChannel.open(this.path, StandardOpenOption.READ)
+        ).read(buf, exec);
     }
 
     /**
@@ -140,31 +142,13 @@ public final class File {
      * @param exec Executor service to perform IO operations
      * @param opts Options
      * @return Future
-     * @checkstyle ReturnCountCheck (20 lines)
      * @checkstyle ParameterNumberCheck (7 lines)
      */
     @SuppressWarnings("PMD.OnlyOneReturn")
     public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
-        final WriteGreed greed,
-        final ExecutorService exec,
-        final OpenOption... opts) {
-        final WriteSubscriber sub;
-        try {
-            sub = new WriteSubscriber(
-                FileChannel.open(
-                    this.path,
-                    new HashSet<>(Arrays.asList(writeOpts(opts)))
-                ),
-                greed,
-                exec
-            );
-        } catch (final IOException err) {
-            final CompletableFuture<Void> res = new CompletableFuture<>();
-            res.completeExceptionally(err);
-            return res;
-        }
-        data.subscribe(sub);
-        return sub;
+        final WriteGreed greed, final ExecutorService exec, final OpenOption... opts) {
+        return new WritableChannel(() -> FileChannel.open(this.path, writeOpts(opts)))
+            .write(data, greed, exec);
     }
 
     /**

@@ -22,63 +22,43 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
-
-import java.nio.ByteBuffer;
-import org.reactivestreams.Subscription;
+package org.cqfn.rio.channel;
 
 /**
- * Read flow subscription.
+ * Handle all exceptions including unchecked and signal error state to
+ * subscriber.
  * @since 0.1
  */
-final class ReadSubscription implements Subscription {
+final class ErrorOnException implements Runnable {
 
     /**
-     * Read subscriber.
+     * Origin runnable.
      */
-    private final ReadSubscriberState<? super ByteBuffer> sub;
+    private final Runnable runnable;
 
     /**
-     * Buffers allocation strategy.
+     * Subscriber.
      */
-    private final Buffers buffers;
+    private final ReadSubscriberState<?> sub;
 
     /**
-     * Tasks queue.
+     * Wrap runnable.
+     * @param runnable Runnable to wrap
+     * @param sub Subscriber
      */
-    private final ReadTaskQueue queue;
-
-    /**
-     * New read subscription.
-     * @param sub Output subscriber
-     * @param buffers Buffers allocation strategy
-     * @param queue Read task queue
-     */
-    ReadSubscription(final ReadSubscriberState<? super ByteBuffer> sub,
-        final Buffers buffers, final ReadTaskQueue queue) {
+    ErrorOnException(final Runnable runnable, final ReadSubscriberState<?> sub) {
+        this.runnable = runnable;
         this.sub = sub;
-        this.buffers = buffers;
-        this.queue = queue;
     }
 
     @Override
-    public void request(final long count) {
-        if (this.sub.done()) {
-            return;
+    @SuppressWarnings("PMD.AvoidCatchingThrowable")
+    public void run() {
+        try {
+            this.runnable.run();
+            // @checkstyle IllegalCatchCheck (1 line)
+        } catch (final Throwable exx) {
+            this.sub.onError(exx);
         }
-        if (count <= 0) {
-            this.queue.clear();
-            this.sub.onError(
-                new IllegalArgumentException(String.format("Requested %d items", count))
-            );
-        } else {
-            this.queue.accept(new ReadRequest.Next(this.sub, this.buffers, count));
-        }
-    }
-
-    @Override
-    public void cancel() {
-        this.sub.cancel();
-        this.queue.clear();
     }
 }
