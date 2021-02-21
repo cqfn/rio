@@ -31,7 +31,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.cqfn.rio.Buffers;
 import org.cqfn.rio.WriteGreed;
 import org.cqfn.rio.channel.ReadableChannel;
@@ -43,11 +42,6 @@ import org.reactivestreams.Publisher;
  * @since 0.1
  */
 public final class File {
-
-    /**
-     * Default executor.
-     */
-    private static final ExecutorService EXEC_DEFAULT = Executors.newCachedThreadPool();
 
     /**
      * File path.
@@ -76,7 +70,7 @@ public final class File {
      * @return Content publisher
      */
     public Publisher<ByteBuffer> content(final Buffers buf) {
-        return this.content(buf, File.EXEC_DEFAULT);
+        return this.content(buf, null);
     }
 
     /**
@@ -91,7 +85,7 @@ public final class File {
     /**
      * File's content.
      * @param buf Buffers policy
-     * @param exec Executor service to perform IO operations
+     * @param exec Executor service to listen subscriber
      * @return Content publisher
      */
     public Publisher<ByteBuffer> content(final Buffers buf, final ExecutorService exec) {
@@ -120,35 +114,22 @@ public final class File {
     public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
         final ExecutorService exec,
         final OpenOption... opts) {
-        return this.write(data, WriteGreed.SYSTEM, exec, opts);
+        return this.write(data, WriteGreed.SYSTEM, opts);
     }
 
     /**
      * Write data to file.
      * @param data Data publisher
      * @param greed Greed level of consumer
-     * @param opts Options
-     * @return Future
-     */
-    public CompletionStage<Void> write(final Publisher<ByteBuffer> data, final WriteGreed greed,
-        final OpenOption... opts) {
-        return this.write(data, greed, File.EXEC_DEFAULT, opts);
-    }
-
-    /**
-     * Write data to file.
-     * @param data Data publisher
-     * @param greed Greed level of consumer
-     * @param exec Executor service to perform IO operations
      * @param opts Options
      * @return Future
      * @checkstyle ParameterNumberCheck (7 lines)
      */
     @SuppressWarnings("PMD.OnlyOneReturn")
     public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
-        final WriteGreed greed, final ExecutorService exec, final OpenOption... opts) {
+        final WriteGreed greed, final OpenOption... opts) {
         return new WritableChannel(() -> FileChannel.open(this.path, writeOpts(opts)))
-            .write(data, greed, exec);
+            .write(data, greed);
     }
 
     /**

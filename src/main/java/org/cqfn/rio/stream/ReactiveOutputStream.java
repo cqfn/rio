@@ -29,7 +29,6 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutorService;
 import org.cqfn.rio.WriteGreed;
 import org.cqfn.rio.channel.WritableChannel;
 import org.reactivestreams.Publisher;
@@ -57,12 +56,10 @@ public final class ReactiveOutputStream {
      * Write data reactively from publisher into output stream.
      * @param data Publisher to write
      * @param greed Of write consumer
-     * @param exec ExecutorService
      * @return Future
      */
-    public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
-        final WriteGreed greed, final ExecutorService exec) {
+    public CompletionStage<Void> write(final Publisher<ByteBuffer> data, final WriteGreed greed) {
         return new WritableChannel(() -> Channels.newChannel(this.src))
-            .write(data, greed, exec);
+            .write(data, greed);
     }
 }

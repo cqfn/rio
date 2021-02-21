@@ -59,7 +59,6 @@ public final class ReactiveInputStream {
      * @return Publisher of bute buffers
      */
     public Publisher<ByteBuffer> read(final Buffers buf, final ExecutorService exec) {
-        return new ReadableChannel(() -> Channels.newChannel(this.src))
-            .read(buf, exec);
+        return new ReadableChannel(() -> Channels.newChannel(this.src)).read(buf, exec);
     }
 }
