@@ -44,23 +44,38 @@ public final class WritableChannel {
     private final ChannelSource<? extends WritableByteChannel> src;
 
     /**
+     * ExecutorService.
+     */
+    private final ExecutorService exec;
+
+    /**
      * Extend writable channel with methods to accept reactive publishers.
      * @param src Writable channel source
      */
     public WritableChannel(final ChannelSource<? extends WritableByteChannel> src) {
+        this(src, ReadableChannel.DEFAULT_IO);
+    }
+
+    /**
+     * Extend writable channel with methods to accept reactive publishers.
+     * @param src Writable channel source
+     * @param exec IO executor service
+     */
+    public WritableChannel(final ChannelSource<? extends WritableByteChannel> src,
+        final ExecutorService exec) {
         this.src = src;
+        this.exec = exec;
     }
 
     /**
      * Write data from publisher into the channel.
      * @param data Source
      * @param greed Of data consumer
-     * @param exec Executor service
      * @return Completable future for write operation and cancellation support
      */
-    public CompletionStage<Void> write(final Publisher<ByteBuffer> data,
-        final WriteGreed greed, final ExecutorService exec) {
-        final WritableChannelSubscriber sub = new WritableChannelSubscriber(this.src, greed, exec);
+    public CompletionStage<Void> write(final Publisher<ByteBuffer> data, final WriteGreed greed) {
+        final WritableChannelSubscriber sub =
+            new WritableChannelSubscriber(this.src, greed, this.exec);
         sub.acceptAsync(data);
         return sub;
     }

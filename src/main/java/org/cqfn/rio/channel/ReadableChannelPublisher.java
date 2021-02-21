@@ -37,6 +37,7 @@ import org.reactivestreams.Subscription;
 /**
  * File read flow publisher.
  * @since 0.2
+ * @checkstyle ParameterNumberCheck (500 lines)
  */
 final class ReadableChannelPublisher implements Publisher<ByteBuffer> {
 
@@ -71,14 +72,21 @@ final class ReadableChannelPublisher implements Publisher<ByteBuffer> {
     private final ExecutorService exec;
 
     /**
+     * Executor service for subscribers.
+     */
+    private final ExecutorService subex;
+
+    /**
      * Ctor.
      * @param src Channel
      * @param buffers Buffers allocation strategy
      * @param exec Executor service for IO operations
+     * @param subex Executor service of subscriber
      */
     ReadableChannelPublisher(final ReadableByteChannel src,
-        final Buffers buffers, final ExecutorService exec) {
-        this(() -> src, buffers, exec);
+        final Buffers buffers, final ExecutorService exec,
+        final ExecutorService subex) {
+        this(() -> src, buffers, exec, subex);
     }
 
     /**
@@ -86,12 +94,15 @@ final class ReadableChannelPublisher implements Publisher<ByteBuffer> {
      * @param src Source of channel
      * @param buffers Buffers allocation strategy
      * @param exec Executor service for IO operations
+     * @param subex Executor service of subscriber
      */
     ReadableChannelPublisher(final ChannelSource<? extends ReadableByteChannel> src,
-        final Buffers buffers, final ExecutorService exec) {
+        final Buffers buffers, final ExecutorService exec,
+        final ExecutorService subex) {
         this.src = src;
         this.buffers = buffers;
         this.exec = exec;
+        this.subex = subex;
     }
 
     @Override
@@ -106,7 +117,7 @@ final class ReadableChannelPublisher implements Publisher<ByteBuffer> {
             return;
         }
         final ReadSubscriberState<? super ByteBuffer> wrap =
-            new ReadSubscriberState<>(subscriber);
+            new ReadSubscriberState<>(new AsyncSubscriber<>(subscriber, this.subex));
         wrap.onSubscribe(
             new ReadSubscription(
                 wrap, this.buffers,
