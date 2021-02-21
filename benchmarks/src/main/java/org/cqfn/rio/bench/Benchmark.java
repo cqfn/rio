@@ -10,6 +10,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -88,19 +90,24 @@ public final class Benchmark {
         final int count = Integer.parseInt(cli.getOptionValue('c'));
         final int size = Optional.ofNullable(cli.getOptionValue("size")).map(Integer::parseInt).orElse(0);
         for (int wm = 0; wm < warmup; wm++) {
-            consumer(target, dst, producer(target, src, size)).join();
+            consume(target, dst, producer(target, src, size)).join();
         }
         final Stats stats = new Stats(count);
+        final SizeStats ss = new SizeStats();
+        ss.start();
         for (int pos = 0; pos < count; pos++) {
             final long start = System.nanoTime();
-            consumer(target, dst, producer(target, src, size)).join();
+            consume(target, dst, 
+                    Flowable.fromPublisher(producer(target, src, size))
+                        .doOnNext(bb -> ss.put(bb.remaining()))).join();
             final long end = System.nanoTime();
             stats.put(pos, end - start);
         }
+        ss.stop();
         System.out.printf(
-            "%s: %s\n",
+            "%s: %s {%s}\n",
             target.getClass().getSimpleName(),
-            stats.format(TimeUnit.MILLISECONDS)
+            stats.format(TimeUnit.MILLISECONDS), ss
         );
         System.exit(0);
     }
@@ -138,8 +145,8 @@ public final class Benchmark {
         return target.read(path);
     }
 
-    private static CompletableFuture<?> consumer(final BenchmarkTarget target, final Path path,
-        final Publisher<ByteBuffer> stream) {
+    private static CompletableFuture<?> consume(final BenchmarkTarget target,
+        final Path path, final Publisher<ByteBuffer> stream) {
         if (path == null) {
             return Flowable.fromPublisher(stream)
                 .ignoreElements()
@@ -147,5 +154,49 @@ public final class Benchmark {
                 .toCompletableFuture();
         }
         return target.write(path, stream);
+    }
+
+    private static final class SizeStats {
+        private final AtomicLong bts = new AtomicLong();
+        private final AtomicLong timer = new AtomicLong();
+
+        void put(final long size) {
+            this.bts.addAndGet(size);
+        }
+
+        void start() {
+            this.timer.set(System.nanoTime());
+        }
+
+        void stop() {
+            final long stop = System.nanoTime();
+            this.timer.updateAndGet(strt -> stop - strt);
+        }
+
+        @Override
+        public String toString() {
+            final long total = this.bts.get();
+            final long time = this.timer.get(); // nanoseconds
+            final long bps = (long) (1_000_000_000.0 * total / time);
+            return String.format("%s (%s/s)", bytesFormat(total), bytesFormat(bps));
+        }
+
+        private static String bytesFormat(final long bytes) {
+            double bts = bytes;
+            String suffix = "B";
+            if (bts >= 1024) {
+                bts /= 1024;
+                suffix = "KB";
+            }
+            if (bts >= 1024) {
+                bts /= 1024;
+                suffix = "MB";
+            }
+            if (bts >= 1024) {
+                bts /= 1024;
+                suffix = "GB";
+            }
+            return String.format("%.2f %s", bts, suffix);
+        }
     }
 }

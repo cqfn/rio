@@ -1,6 +1,5 @@
 J := java -jar
 TARGET := target/rio-bench-1.0-SNAPSHOT-jar-with-dependencies.jar
-WMP := 10
 T_RIO := org.cqfn.rio.bench.RioTarget
 T_VTX := org.cqfn.rio.bench.VertxTarget
 TEST_FILES = test.1000 test.10000 test.100000 test.1000000
@@ -20,8 +19,10 @@ endef
 test.%:
 	$(call urand_test_res,$(subst test.,,$@))
 
-clean:
+distclean: clean
 	rm -vf test.*
+
+clean:
 	mvn clean
 
 define _bench_dummy
