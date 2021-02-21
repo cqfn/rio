@@ -22,43 +22,60 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
+
+import com.jcabi.log.Logger;
+import java.io.IOException;
+import java.nio.channels.ReadableByteChannel;
 
 /**
- * Handle all exceptions including unchecked and signal error state to
- * subscriber.
+ * Runnable decorator which closes channel on exit.
  * @since 0.1
  */
-final class ErrorOnException implements Runnable {
+final class CloseChanOnError implements Runnable {
 
     /**
-     * Origin runnable.
+     * Decorated job to run.
      */
-    private final Runnable runnable;
+    private final Runnable origin;
 
     /**
-     * Subscriber.
+     * Channel to close.
      */
-    private final ReadSubscriberState<?> sub;
+    private final ReadableByteChannel chan;
 
     /**
-     * Wrap runnable.
-     * @param runnable Runnable to wrap
-     * @param sub Subscriber
+     * Wraps runnable with close channel action on exit.
+     * @param origin Runnable to decorate
+     * @param chan Channel to close
      */
-    ErrorOnException(final Runnable runnable, final ReadSubscriberState<?> sub) {
-        this.runnable = runnable;
-        this.sub = sub;
+    CloseChanOnError(final Runnable origin, final ReadableByteChannel chan) {
+        this.origin = origin;
+        this.chan = chan;
     }
 
     @Override
     @SuppressWarnings("PMD.AvoidCatchingThrowable")
     public void run() {
         try {
-            this.runnable.run();
+            this.origin.run();
             // @checkstyle IllegalCatchCheck (1 line)
-        } catch (final Throwable exx) {
-            this.sub.onError(exx);
+        } catch (final Throwable err) {
+            this.close();
+            throw err;
+        }
+    }
+
+    /**
+     * Close channel.
+     */
+    private void close() {
+        if (this.chan.isOpen()) {
+            try {
+                this.chan.close();
+            } catch (final IOException err) {
+                Logger.warn(this, "Failed to close channel: %[exception]s", err);
+            }
         }
     }
 }

@@ -22,13 +22,14 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
 import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import org.cqfn.rio.Buffers;
 
 /**
  * Read request.
@@ -56,7 +57,7 @@ abstract class ReadRequest {
      * Process file channel.
      * @param channel Channel to process
      */
-    abstract void process(FileChannel channel);
+    abstract void process(ReadableByteChannel channel);
 
     /**
      * Next request.
@@ -90,7 +91,7 @@ abstract class ReadRequest {
         // @checkstyle ReturnCountCheck (50 lines)
         @Override
         @SuppressWarnings({"PMD.OnlyOneReturn", "PMD.AvoidCatchingGenericException"})
-        void process(final FileChannel channel) {
+        void process(final ReadableByteChannel channel) {
             for (int cnt = 0; cnt < this.count; ++cnt) {
                 if (this.sub.done()) {
                     return;

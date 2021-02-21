@@ -22,60 +22,42 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
-import com.jcabi.log.Logger;
-import java.io.IOException;
-import java.nio.channels.FileChannel;
+import java.util.concurrent.ExecutorService;
 
 /**
- * Runnable decorator which closes channel on exit.
+ * Runnable decorator which shutdowns {@link ExecutorService} on exit.
  * @since 0.1
  */
-final class CloseChanOnError implements Runnable {
+final class ShutdownOnExit implements Runnable {
 
     /**
-     * Decorated job to run.
+     * Executor service.
+     */
+    private final ExecutorService exec;
+
+    /**
+     * Origin runnable.
      */
     private final Runnable origin;
 
     /**
-     * Channel to close.
+     * Wrap origin runnable.
+     * @param origin Origin runnable
+     * @param exec Executor to shutdown
      */
-    private final FileChannel chan;
-
-    /**
-     * Wraps runnable with close channel action on exit.
-     * @param origin Runnable to decorate
-     * @param chan Channel to close
-     */
-    CloseChanOnError(final Runnable origin, final FileChannel chan) {
+    ShutdownOnExit(final Runnable origin, final ExecutorService exec) {
+        this.exec = exec;
         this.origin = origin;
-        this.chan = chan;
     }
 
     @Override
-    @SuppressWarnings("PMD.AvoidCatchingThrowable")
     public void run() {
         try {
             this.origin.run();
-            // @checkstyle IllegalCatchCheck (1 line)
-        } catch (final Throwable err) {
-            this.close();
-            throw err;
-        }
-    }
-
-    /**
-     * Close channel.
-     */
-    private void close() {
-        if (this.chan.isOpen()) {
-            try {
-                this.chan.close();
-            } catch (final IOException err) {
-                Logger.warn(this, "Failed to close channel: %[exception]s", err);
-            }
+        } finally {
+            this.exec.shutdown();
         }
     }
 }

@@ -22,12 +22,12 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
 import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -55,7 +55,7 @@ abstract class WriteRequest {
      * Process write request.
      * @param chan Output channel
      */
-    abstract void process(FileChannel chan);
+    abstract void process(WritableByteChannel chan);
 
     /**
      * Next write request with data.
@@ -79,7 +79,7 @@ abstract class WriteRequest {
         }
 
         @Override
-        public void process(final FileChannel chan) {
+        public void process(final WritableByteChannel chan) {
             while (this.target.hasRemaining()) {
                 try {
                     chan.write(this.target);
@@ -119,7 +119,7 @@ abstract class WriteRequest {
         }
 
         @Override
-        public void process(final FileChannel chan) {
+        public void process(final WritableByteChannel chan) {
             try {
                 chan.close();
             } catch (final IOException iex) {
@@ -162,7 +162,7 @@ abstract class WriteRequest {
         }
 
         @Override
-        void process(final FileChannel chan) {
+        void process(final WritableByteChannel chan) {
             try {
                 chan.close();
             } catch (final IOException cex) {
@@ -190,7 +190,7 @@ abstract class WriteRequest {
         }
 
         @Override
-        void process(final FileChannel chan) {
+        void process(final WritableByteChannel chan) {
             // nothing
         }
     }

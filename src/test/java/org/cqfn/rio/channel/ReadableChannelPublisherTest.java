@@ -22,17 +22,17 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
 import io.reactivex.Flowable;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.util.Locale;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.cqfn.rio.Buffers;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
@@ -40,11 +40,12 @@ import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 
 /**
- * Test case for {@link ReadFlow}.
+ * Test case for {@link ReadChannlePublisher}.
  *
  * @since 0.1
  * @checkstyle JavadocMethodCheck (500 lines)
  * @checkstyle MagicNumberCheck (500 lines)
+ * @checkstyle ReturnCountCheck (500 lines)
  */
 @SuppressWarnings(
     {
@@ -52,12 +53,13 @@ import org.testng.annotations.BeforeClass;
         "PMD.JUnit4TestShouldUseBeforeAnnotation"
     }
 )
-public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
+public final class ReadableChannelPublisherTest
+    extends PublisherVerification<ByteBuffer> {
 
     /**
      * Ctor.
      */
-    public ReadFlowTest() {
+    public ReadableChannelPublisherTest() {
         super(new TestEnvironment());
     }
 
@@ -68,23 +70,14 @@ public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
         }
     }
 
-    // @checkstyle ReturnCountCheck (50 lines)
     @Override
     public Publisher<ByteBuffer> createPublisher(final long size) {
         if (size == 0) {
             return Flowable.empty();
         }
-        final Path tmp;
-        try {
-            tmp = Files.createTempFile(ReadFlowTest.class.getSimpleName(), ".test");
-            tmp.toFile().deleteOnExit();
-            new TestResource("file.bin").copy(tmp);
-        } catch (final IOException err) {
-            throw new UncheckedIOException(err);
-        }
-        final int capacity = (int) (5200 / size);
-        return new ReadFlow(
-            tmp,
+        final int capacity = 128;
+        return new ReadableChannelPublisher(
+            () -> new SourceChan((int) (capacity * size)),
             () -> ByteBuffer.allocateDirect(capacity),
             Executors.newCachedThreadPool()
         );
@@ -92,8 +85,10 @@ public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
 
     @Override
     public Publisher<ByteBuffer> createFailedPublisher() {
-        return new ReadFlow(
-            Paths.get("/some/file/which/doesnt/exist"),
+        return new ReadableChannelPublisher(
+            () -> {
+                throw new IOException("test-error");
+            },
             Buffers.Standard.K1,
             Executors.newCachedThreadPool()
         );
@@ -107,5 +102,52 @@ public final class ReadFlowTest extends PublisherVerification<ByteBuffer> {
     @Override
     public long boundedDepthOfOnNextAndRequestRecursion() {
         return 1;
+    }
+
+    /**
+     * Source channel for test with generated data.
+     * @since 1.0
+     */
+    private static final class SourceChan extends AbstractInterruptibleChannel
+        implements ReadableByteChannel {
+
+        /**
+         * Channel size.
+         */
+        private final AtomicInteger size;
+
+        /**
+         * New test channel.
+         * @param size Channel size
+         */
+        SourceChan(final int size) {
+            this.size = new AtomicInteger(size);
+        }
+
+        @Override
+        public int read(final ByteBuffer buf) throws IOException {
+            boolean success = false;
+            try {
+                super.begin();
+                if (!super.isOpen()) {
+                    success = true;
+                    return -1;
+                }
+                final int len = Math.min(this.size.get(), buf.remaining());
+                buf.put(new byte[len]);
+                if (this.size.addAndGet(-len) <= 0) {
+                    this.close();
+                }
+                success = true;
+                return len;
+            } finally {
+                super.end(success);
+            }
+        }
+
+        @Override
+        public void implCloseChannel() throws IOException {
+            // nothing to close
+        }
     }
 }

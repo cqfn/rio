@@ -40,16 +40,6 @@ OTHER DEALINGS IN THE SOFTWARE.
       <url>https://github.com/cqfn/rio/blob/master/LICENSE.txt</url>
     </license>
   </licenses>
-  <repositories>
-    <repository>
-      <name>Artipie central</name>
-      <id>central.artipie.com</id>
-      <url>https://central.artipie.com/cqfn/maven</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
   <developers>
     <developer>
       <id>g4s8</id>
@@ -81,6 +71,7 @@ OTHER DEALINGS IN THE SOFTWARE.
     <maven.compiler.target>1.8</maven.compiler.target>
     <junit-platform.version>5.6.2</junit-platform.version>
     <versions.reactive-streams>1.0.3</versions.reactive-streams>
+    <surefire.version>3.0.0-M5</surefire.version>
   </properties>
   <dependencies>
     <dependency>
@@ -142,24 +133,43 @@ OTHER DEALINGS IN THE SOFTWARE.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.3.2</version>
+          </dependency>
+        </dependencies>
         <executions>
           <execution>
+            <id>surefire-testng</id>
             <phase>test</phase>
             <goals>
               <goal>test</goal>
             </goals>
             <configuration>
-              <testNGArtifactName>none:none</testNGArtifactName>
+              <skip>false</skip>
+              <includes>
+                <include>org.cqfn.channel.ReadFlowTest</include>
+                <include>org.cqfn.channel.WriteSubscriberTestReadFlowTest</include>
+              </includes>
+              <junitArtifactName>none:none</junitArtifactName>
             </configuration>
           </execution>
           <execution>
-            <id>test-testng</id>
+            <id>surefire-junit</id>
             <phase>test</phase>
             <goals>
               <goal>test</goal>
             </goals>
             <configuration>
-              <junitArtifactName>none:none</junitArtifactName>
+              <skip>false</skip>
+              <excludes>
+                <exclude>org.cqfn.channel.ReadFlowTest</exclude>
+                <exclude>org.cqfn.channel.WriteSubscriberTestReadFlowTest</exclude>
+              </excludes>
+              <testNGArtifactName>none:none</testNGArtifactName>
             </configuration>
           </execution>
         </executions>
@@ -244,6 +254,16 @@ OTHER DEALINGS IN THE SOFTWARE.
               <exclude>checkstyle:/src/test/resources-binary/.*</exclude>
             </excludes>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.jcabi</groupId>
+          <artifactId>jcabi-maven-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>jcabi-versionalize-packages</id>
+              <phase>none</phase>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>

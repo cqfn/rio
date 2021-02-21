@@ -22,24 +22,23 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.nio.channels.ReadableByteChannel;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import org.cqfn.rio.Buffers;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 /**
  * File read flow publisher.
- * @since 0.1
+ * @since 0.2
  */
-final class ReadFlow implements Publisher<ByteBuffer> {
+final class ReadableChannelPublisher implements Publisher<ByteBuffer> {
 
     /**
      * Dummy subscription which does nothing.
@@ -57,9 +56,9 @@ final class ReadFlow implements Publisher<ByteBuffer> {
     };
 
     /**
-     * File path.
+     * Channel source.
      */
-    private final Path path;
+    private final ChannelSource<? extends ReadableByteChannel> src;
 
     /**
      * Buffer allocation strategy.
@@ -73,28 +72,41 @@ final class ReadFlow implements Publisher<ByteBuffer> {
 
     /**
      * Ctor.
-     * @param path Path for file
+     * @param src Channel
      * @param buffers Buffers allocation strategy
      * @param exec Executor service for IO operations
      */
-    ReadFlow(final Path path, final Buffers buffers, final ExecutorService exec) {
+    ReadableChannelPublisher(final ReadableByteChannel src,
+        final Buffers buffers, final ExecutorService exec) {
+        this(() -> src, buffers, exec);
+    }
+
+    /**
+     * Ctor.
+     * @param src Source of channel
+     * @param buffers Buffers allocation strategy
+     * @param exec Executor service for IO operations
+     */
+    ReadableChannelPublisher(final ChannelSource<? extends ReadableByteChannel> src,
+        final Buffers buffers, final ExecutorService exec) {
+        this.src = src;
         this.buffers = buffers;
-        this.path = path;
         this.exec = exec;
     }
 
     @Override
     public void subscribe(final Subscriber<? super ByteBuffer> subscriber) {
         Objects.requireNonNull(subscriber, "Subscriber can't be null");
-        final FileChannel chan;
+        final ReadableByteChannel chan;
         try {
-            chan = FileChannel.open(this.path, StandardOpenOption.READ);
+            chan = this.src.channel();
         } catch (final IOException err) {
-            subscriber.onSubscribe(ReadFlow.DUMMY);
+            subscriber.onSubscribe(ReadableChannelPublisher.DUMMY);
             subscriber.onError(err);
             return;
         }
-        final ReadSubscriberState<? super ByteBuffer> wrap = new ReadSubscriberState<>(subscriber);
+        final ReadSubscriberState<? super ByteBuffer> wrap =
+            new ReadSubscriberState<>(subscriber);
         wrap.onSubscribe(
             new ReadSubscription(
                 wrap, this.buffers,

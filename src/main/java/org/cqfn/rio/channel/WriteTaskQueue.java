@@ -22,16 +22,17 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
 import com.jcabi.log.Logger;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.cqfn.rio.WriteGreed;
 import org.jctools.queues.SpscUnboundedArrayQueue;
 import org.reactivestreams.Subscription;
 
@@ -53,7 +54,7 @@ final class WriteTaskQueue implements Runnable {
     /**
      * File channel.
      */
-    private final FileChannel channel;
+    private final WritableByteChannel channel;
 
     /**
      * Subscription reference.
@@ -90,8 +91,8 @@ final class WriteTaskQueue implements Runnable {
      * @checkstyle ParameterNumberCheck (5 lines)
      * @checkstyle MagicNumberCheck (10 lines)
      */
-    WriteTaskQueue(final CompletableFuture<Void> future, final FileChannel channel,
-        final AtomicReference<Subscription> sub,
+    WriteTaskQueue(final CompletableFuture<Void> future,
+        final WritableByteChannel channel, final AtomicReference<Subscription> sub,
         final WriteGreed greed, final Executor exec) {
         this.future = future;
         this.channel = channel;

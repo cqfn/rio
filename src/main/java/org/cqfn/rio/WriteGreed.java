@@ -22,29 +22,28 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio;
 
 import java.util.concurrent.atomic.AtomicLong;
 import org.reactivestreams.Subscription;
 
 /**
  * Greed level of write consumer.
- * @deprecated Use {@link org.cqfn.rio.WriteGreed} instead
- * @since 0.1
+ * @since 0.2
  */
-@Deprecated
-public interface WriteGreed extends org.cqfn.rio.WriteGreed {
+public interface WriteGreed {
 
     /**
      * Request one chunk on each request.
      */
     WriteGreed SINGLE = new Constant(1L, 0L);
+
     /**
      * Greed level from system {@code rio.file.write.greed} property, or {@code 1} default.
      */
     WriteGreed SYSTEM = new Constant(
-        Long.getLong("rio.file.write.greed.amount", 3),
-        Long.getLong("rio.file.write.greed.shift", 1)
+        Long.getLong("org.cqfn.rio.WriteGreed#amount", 3),
+        Long.getLong("org.cqfn.rio.WriteGreed#shift", 1)
     );
 
     /**
@@ -56,7 +55,7 @@ public interface WriteGreed extends org.cqfn.rio.WriteGreed {
 
     /**
      * Request always constant amount.
-     * @since 0.1
+     * @since 0.2
      */
     final class Constant implements WriteGreed {
 

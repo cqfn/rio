@@ -22,19 +22,19 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.cqfn.rio.file;
+package org.cqfn.rio.channel;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Locale;
 import java.util.concurrent.Executors;
+import org.cqfn.rio.WriteGreed;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.reactivestreams.tck.SubscriberWhiteboxVerification;
@@ -43,7 +43,7 @@ import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 
 /**
- * Test case for {@link WriteSubscriber}.
+ * Test case for {@link WriteChannelSubscriber}.
  *
  * @since 1.0
  * @checkstyle MagicNumberCheck (500 lines)
@@ -55,12 +55,13 @@ import org.testng.annotations.BeforeClass;
         "PMD.JUnit4TestShouldUseBeforeAnnotation"
     }
 )
-public final class WriteSubscriberTest extends SubscriberWhiteboxVerification<ByteBuffer> {
+public final class WritableChannelSubscriberTest
+    extends SubscriberWhiteboxVerification<ByteBuffer> {
 
     /**
      * Ctor.
      */
-    public WriteSubscriberTest() {
+    public WritableChannelSubscriberTest() {
         super(new TestEnvironment());
     }
 
@@ -73,8 +74,8 @@ public final class WriteSubscriberTest extends SubscriberWhiteboxVerification<By
             tmp = Files.createTempFile(this.getClass().getSimpleName(), ".tmp");
             tmp.toFile().deleteOnExit();
             return new SubscriberWithProbe<>(
-                new WriteSubscriber(
-                    FileChannel.open(tmp, Collections.singleton(StandardOpenOption.WRITE)),
+                new WritableChannelSubscriber(
+                    () -> Channels.newChannel(new ByteArrayOutputStream()),
                     WriteGreed.SINGLE,
                     Executors.newCachedThreadPool()
                 ),
