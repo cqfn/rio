@@ -28,8 +28,8 @@ package org.cqfn.rio.channel;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinPool;
 import org.cqfn.rio.Buffers;
+import org.cqfn.rio.IoExecutor;
 import org.reactivestreams.Publisher;
 
 /**
@@ -39,11 +39,6 @@ import org.reactivestreams.Publisher;
 public final class ReadableChannel {
 
     /**
-     * Default IO executor service.
-     */
-    static final ExecutorService DEFAULT_IO = new ForkJoinPool();
-
-    /**
      * Source channel.
      */
     private final ChannelSource<? extends ReadableByteChannel> chan;
@@ -51,14 +46,14 @@ public final class ReadableChannel {
     /**
      * IO exec.
      */
-    private final ExecutorService ioexec;
+    private final ExecutorService exec;
 
     /**
      * Extends channel with publisher providers methods.
      * @param chan Source channel
      */
     public ReadableChannel(final ChannelSource<? extends ReadableByteChannel> chan) {
-        this(chan, ReadableChannel.DEFAULT_IO);
+        this(chan, IoExecutor.shared());
     }
 
     /**
@@ -69,17 +64,7 @@ public final class ReadableChannel {
     public ReadableChannel(final ChannelSource<? extends ReadableByteChannel> chan,
         final ExecutorService exec) {
         this.chan = chan;
-        this.ioexec = exec;
-    }
-
-    /**
-     * Read channel reactively as a publisher.
-     * @param buf Buffer allocation strategy
-     * @param exec Executor service for subscriber, use same thread if null
-     * @return Publisher of byte buffers
-     */
-    public Publisher<ByteBuffer> read(final Buffers buf, final ExecutorService exec) {
-        return new ReadableChannelPublisher(this.chan, buf, this.ioexec, exec);
+        this.exec = exec;
     }
 
     /**
@@ -88,7 +73,7 @@ public final class ReadableChannel {
      * @return Publisher of byte buffers
      */
     public Publisher<ByteBuffer> read(final Buffers buf) {
-        return new ReadableChannelPublisher(this.chan, buf, this.ioexec, null);
+        return new ReadableChannelPublisher(this.chan, buf, this.exec);
     }
 }
 

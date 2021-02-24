@@ -30,10 +30,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.util.Locale;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.cqfn.rio.Buffers;
+import org.cqfn.rio.IoExecutor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
@@ -80,8 +79,7 @@ public final class ReadableChannelPublisherTest
         return new ReadableChannelPublisher(
             () -> new SourceChan((int) (capacity * size)),
             () -> ByteBuffer.allocateDirect(capacity),
-            new ForkJoinPool(),
-            Executors.newCachedThreadPool()
+            IoExecutor.shared()
         );
     }
 
@@ -92,8 +90,7 @@ public final class ReadableChannelPublisherTest
                 throw new IOException("test-error");
             },
             Buffers.Standard.K1,
-            Executors.newCachedThreadPool(),
-            null
+            IoExecutor.shared()
         );
     }
 
