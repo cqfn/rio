@@ -27,6 +27,7 @@ package org.cqfn.rio.channel;
 import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -43,6 +44,7 @@ import org.reactivestreams.Subscription;
  * @checkstyle MethodBodyCommentsCheck (500 lines)
  * @checkstyle CyclomaticComplexityCheck (500 lines)
  * @checkstyle NestedIfDepthCheck (500 lines)
+ * @checkstyle ExecutableStatementCountCheck (500 lines)
  */
 final class WriteTaskQueue implements Runnable {
 
@@ -106,13 +108,16 @@ final class WriteTaskQueue implements Runnable {
     @Override
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public void run() {
+        boolean retry = false;
         while (!this.future.isDone()) {
             // requesting next chunk of byte buffers according to greed strategy
-            final boolean requested = this.greed.request(this.sub.get());
+            final boolean requested = !retry && this.greed.request(this.sub.get());
             WriteRequest next = this.queue.poll();
             // if no next item, try to exit the loop
             final boolean empty = next == null;
             if (!requested && empty) {
+                Thread.yield();
+                retry = false;
                 continue;
             }
             if (empty) {
@@ -126,6 +131,7 @@ final class WriteTaskQueue implements Runnable {
                     }
                     next = this.queue.poll();
                     if (next == null) {
+                        retry = true;
                         continue;
                     }
                 } else {
@@ -133,6 +139,8 @@ final class WriteTaskQueue implements Runnable {
                     return;
                 }
             }
+            retry = false;
+            this.greed.received();
             next.process(this.channel);
         }
         if (this.channel.isOpen()) {
@@ -142,7 +150,7 @@ final class WriteTaskQueue implements Runnable {
                 Logger.warn(this, "Failed to close channel: %[exception]s", err);
             }
         }
-        this.sub.getAndSet(null).cancel();
+        Optional.ofNullable(this.sub.getAndSet(null)).ifPresent(Subscription::cancel);
         this.running.set(false);
     }
 

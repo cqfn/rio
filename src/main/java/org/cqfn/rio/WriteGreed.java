@@ -54,6 +54,21 @@ public interface WriteGreed {
     boolean request(Subscription sub);
 
     /**
+     * Notify item was received.
+     */
+    default void received() {
+        // do nothing
+    }
+
+    /**
+     * Try to convert into adaptive mode.
+     * @return Adaptive greed if applicable.
+     */
+    default WriteGreed adaptive() {
+        return this;
+    }
+
+    /**
      * Request always constant amount.
      * @since 0.2
      */
@@ -103,6 +118,11 @@ public interface WriteGreed {
                 sub.request(this.amount);
             }
             return result;
+        }
+
+        @Override
+        public WriteGreed adaptive() {
+            return new AdaptiveGreed(this.amount, this.shift);
         }
     }
 }

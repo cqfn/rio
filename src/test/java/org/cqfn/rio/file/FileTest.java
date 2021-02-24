@@ -144,7 +144,7 @@ public final class FileTest {
         final Path dest = tmp.resolve("dst");
         new TestResource("file.bin").copy(src);
         final ExecutorService exec = Executors.newSingleThreadExecutor();
-        new File(dest).write(new File(src).content(Buffers.Standard.K1, exec), exec)
+        new File(dest, exec).write(new File(src, exec).content(Buffers.Standard.K1))
             .toCompletableFuture().get();
         MatcherAssert.assertThat(
             bytesToHex(sha256().digest(Files.readAllBytes(dest))),
