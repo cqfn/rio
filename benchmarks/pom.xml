@@ -84,14 +84,12 @@ OTHER DEALINGS IN THE SOFTWARE.
       <artifactId>commons-cli</artifactId>
       <version>1.4</version>
     </dependency>
-
     <!-- org.cqfn.rio provider -->
     <dependency>
       <groupId>org.cqfn</groupId>
       <artifactId>rio</artifactId>
       <version>1.0-SNAPSHOT</version>
     </dependency>
-
     <!-- io.vertx.vertx provider -->
     <dependency>
       <groupId>com.artipie</groupId>
@@ -110,7 +108,6 @@ OTHER DEALINGS IN THE SOFTWARE.
       <version>1.8.0-beta4</version>
       <scope>runtime</scope>
     </dependency>
-
   </dependencies>
   <build>
     <plugins>
