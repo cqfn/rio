@@ -47,30 +47,17 @@ Provider  | Test    | Size | Count | AVG (ms)    | STDDEV (ms) | STDERR (ms) | S
  rio-v0.3 | Write   | 1G   | 100   | 3046.037934 | 2623.388341 | 262.338834  | 320.60 MB/s |
  VertX    | Write   | 1G   | 100   | 7744.611679 | 178.417192  | 17.841719   | 126.10 MB/s |
  rio-v0.1 | Copy    | 1M   | 1000  | 1.424169    | 1.205526    | 0.038122    |             |
- VertX    | Copy    | 1M   | 1000  | 17.507898   | 2.890867    | 0.091417    |             |
+ rio-v0.3 | Copy    | 1M   | 1000  | 1.845530    | 4.515830    | 0.142803    | 528.63 MB/s |
+ VertX    | Copy    | 1M   | 1000  | 25.574520   | 60.415667   | 1.910511    | 38.18 MB/s  |
  rio-v0.1 | Copy    | 10M  | 1000  | 9.418580    | 7.617681    | 0.240892    |             |
- VertX    | Copy    | 10M  | 1000  | 182.108562  | 6.272134    | 0.198342    |             |
+ roi-v0.3 | Copy    | 10M  | 1000  | 10.485593   | 8.963004    | 0.283435    | 931.09 MB/s |
+ VertX    | Copy    | 10M  | 1000  | 181.619604  | 7.243850    | 0.229071    | 53.77 MB/s  |
  rio-v0.1 | Copy    | 100M | 500   | 104.309257  | 113.243445  | 5.064401    |             |
- VertX    | Copy    | 100M | 500   | 1822.104805 | 119.496880  | 5.344063    |             |
+ rio-v0.3 | Copy    | 100M | 500   | 91.022973   | 33.117050   | 1.481040    | 1.05 GB/s   |
+ VertX    | Copy    | 100M | 500   | 1813.366456 | 109.127475  | 4.880329    | 53.85 MB/s  |
  rio-v0.1 | Copy    | 1G   | 100   | 18235.43255 | 601.134487  | 60.11344    |             |
- VertX    | Copy    | 1G   | 100   | 21893.58409 | 520.170780  | 52.017078   |             |
-
-```
-TODO: add to the table v0.3 copy benchmarks
-=============== Copy benchmarks ===============
-Copy 1M
-RioTarget: CNT=1000 SUM=1845 MIN=0 MAX=135 AVG=1.845530 STDDEV=4.515830 STDERR=0.142803 {976.56 MB (528.63 MB/s)}
-VertxTarget: CNT=1000 SUM=25574 MIN=8 MAX=763 AVG=25.574520 STDDEV=60.415667 STDERR=1.910511 {976.56 MB (38.18 MB/s)}
-Copy 10M
-RioTarget: CNT=1000 SUM=10485 MIN=6 MAX=141 AVG=10.485593 STDDEV=8.963004 STDERR=0.283435 {9.54 GB (931.09 MB/s)}
-VertxTarget: CNT=1000 SUM=181619 MIN=74 MAX=237 AVG=181.619604 STDDEV=7.243850 STDERR=0.229071 {9.54 GB (53.77 MB/s)}
-Copy 100M
-RioTarget: CNT=500 SUM=45511 MIN=74 MAX=288 AVG=91.022973 STDDEV=33.117050 STDERR=1.481040 {47.68 GB (1.05 GB/s)}
-VertxTarget: CNT=500 SUM=906683 MIN=1049 MAX=2479 AVG=1813.366456 STDDEV=109.127475 STDERR=4.880329 {47.68 GB (53.85 MB/s)}
-Copy 1G
-RioTarget: CNT=100 SUM=1740749 MIN=2434 MAX=20332 AVG=17407.491999 STDDEV=3358.381378 STDERR=335.838138 {95.37 GB (56.10 MB/s)}
-VertxTarget: CNT=100 SUM=800325 MIN=7720 MAX=8195 AVG=8003.253292 STDDEV=147.134895 STDERR=14.713489 {95.37 GB (122.02 MB/s)}
-```
+ rio-v0.3 | Copy    | 1G   | 100   | 17407.49199 | 3358.381378 | 335.838138  | 56.10 MB/s  |
+ VertX    | Copy    | 1G   | 100   | 8003.253292 | 147.134895  | 14.713489   | 122.02 MB/s |
 
 ## Usage
 
