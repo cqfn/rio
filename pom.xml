@@ -27,7 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.cqfn</groupId>
   <artifactId>rio</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>0.3</version>
   <parent>
     <groupId>com.artipie</groupId>
     <artifactId>ppom</artifactId>
