@@ -11,6 +11,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -71,6 +76,19 @@ public final class Benchmark {
                 .desc("Size to generate")
                 .type(Integer.class)
                 .build()
+        ).addOption(
+            Option.builder("l")
+                .hasArg()
+                .desc("Parallel operations")
+                .type(Integer.class)
+                .build()
+        ).addOption(
+            Option.builder()
+                .longOpt("dir")
+                .hasArg()
+                .desc("Test dir")
+                .type(String.class)
+                .build()
         );
 
     public static void main(final String... args) throws Exception {
@@ -84,40 +102,36 @@ public final class Benchmark {
         }
         final BenchmarkTarget target =
             (BenchmarkTarget) Class.forName(cli.getOptionValue('p')).getConstructor().newInstance();
-        final Path src = optPath(cli, 's');
-        final Path dst = optPath(cli, 'd');
+        final String dir = cli.getOptionValue("dir");
+        final Path src = optPath(cli, 's', dir);
+        final Path dst = optPath(cli, 'd', dir);
         final int warmup = Integer.parseInt(cli.getOptionValue('w'));
         final int count = Integer.parseInt(cli.getOptionValue('c'));
+        final int par = Optional.ofNullable(cli.getOptionValue('l')).map(Integer::parseInt).orElse(1);
         final int size = Optional.ofNullable(cli.getOptionValue("size")).map(Integer::parseInt).orElse(0);
         for (int wm = 0; wm < warmup; wm++) {
-            consume(target, dst, producer(target, src, size)).join();
+            consume(target, dst, producer(target, src, size, par)).join();
         }
-        final Stats stats = new Stats(count);
-        final SizeStats ss = new SizeStats();
-        ss.start();
+        final Stats stats = new Stats(count, par);
         for (int pos = 0; pos < count; pos++) {
             final long start = System.nanoTime();
             consume(target, dst, 
-                    Flowable.fromPublisher(producer(target, src, size))
-                        .doOnNext(bb -> ss.put(bb.remaining()))).join();
+                    producer(target, src, size, par).stream().map(pub -> Flowable.fromPublisher(pub)
+                        .doOnNext(bb -> stats.putBytes(bb.remaining()))).collect(Collectors.toList())).join();
             final long end = System.nanoTime();
             stats.put(pos, end - start);
         }
-        ss.stop();
-        System.out.printf(
-            "%s: %s {%s}\n",
-            target.getClass().getSimpleName(),
-            stats.format(TimeUnit.MILLISECONDS), ss
-        );
+        stats.print(TimeUnit.MILLISECONDS, new Stats.MarkdownOut(System.out, target.getClass().getSimpleName()));
         System.exit(0);
     }
 
-    private static Path optPath(final CommandLine cli, final char opt) {
+    private static Path optPath(final CommandLine cli, final char opt,
+        final String dir) {
         final String val = cli.getOptionValue(opt);
         if (val == null) {
             return null;
         }
-        return Paths.get(val);
+        return Paths.get(dir, val);
     }
 
     private static final byte[] RANDOM_KB;
@@ -127,8 +141,14 @@ public final class Benchmark {
         new SecureRandom().nextBytes(RANDOM_KB);
     }
 
-    private static Publisher<ByteBuffer> producer(final BenchmarkTarget target,
-        final Path path, final int size) {
+    private static List<Publisher<ByteBuffer>> producer(final BenchmarkTarget target,
+        final Path path, int size, int par) {
+        return IntStream.range(0, par).mapToObj(x -> producer(target, size, path))
+            .collect(Collectors.toList());
+    }
+
+    private static Publisher<ByteBuffer> producer(final BenchmarkTarget target, int size,
+        final Path path) {
         if (path == null) {
             final AtomicInteger cnt = new AtomicInteger(size);
             return Flowable.generate(
@@ -146,14 +166,21 @@ public final class Benchmark {
     }
 
     private static CompletableFuture<?> consume(final BenchmarkTarget target,
-        final Path path, final Publisher<ByteBuffer> stream) {
+        final Path path, final List<Publisher<ByteBuffer>> sources) {
+        final AtomicInteger cnt = new AtomicInteger(0);
+        return CompletableFuture.allOf(sources.stream().map(Benchmark.consumer(target, path, cnt))
+            .collect(Collectors.toList()).toArray(new CompletableFuture<?>[0]));
+    }
+
+    private static Function<Publisher<ByteBuffer>, CompletableFuture<?>> consumer(
+            final BenchmarkTarget target, final Path path, final AtomicInteger cnt) {
         if (path == null) {
-            return Flowable.fromPublisher(stream)
+            return stream -> Flowable.fromPublisher(stream)
                 .ignoreElements()
                 .to(CompletableInterop.await())
                 .toCompletableFuture();
         }
-        return target.write(path, stream);
+        return stream -> target.write(Path.of(path.toString() + cnt.incrementAndGet()), stream);
     }
 
     private static final class SizeStats {
