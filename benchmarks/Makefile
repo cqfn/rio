@@ -2,6 +2,7 @@ J := java -jar
 TARGET := target/rio-bench-1.0-SNAPSHOT-jar-with-dependencies.jar
 T_RIO := org.cqfn.rio.bench.RioTarget
 T_VTX := org.cqfn.rio.bench.VertxTarget
+T_FLUX := org.cqfn.rio.bench.FluxTarget
 TEST_FILES = test.1 test.1024 test.10240 test.102400 test.1048576
 TEST_DIR = /var/tmp/rio-bench
 
@@ -32,23 +33,27 @@ clean:
 	mvn clean
 
 define _bench_dummy
-	@$(J) $(TARGET) -p $(T_RIO) --dir $(TEST_DIR) --size $(1) -c $(2) -w $(3)
-	@$(J) $(TARGET) -p $(T_VTX) --dir $(TEST_DIR) --size $(1) -c $(2) -w $(3)
+	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) --size $(1) -c $(2) -w $(3)
+	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) --size $(1) -c $(2) -w $(3)
+	@$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) --size $(1) -c $(2) -w $(3)
 endef
 
 define _bench_read
-	@$(J) $(TARGET) -p $(T_RIO) --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4)
-	@$(J) $(TARGET) -p $(T_VTX) --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4)
+	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4)
+	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4)
+    @$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4)
 endef
 
 define _bench_copy
-	@$(J) $(TARGET) -p $(T_RIO) --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.rio -c $(2) -w $(3) -l $(4)
-	@$(J) $(TARGET) -p $(T_VTX) --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.vtx -c $(2) -w $(3) -l $(4)
+	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.rio -c $(2) -w $(3) -l $(4)
+	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.vtx -c $(2) -w $(3) -l $(4)
+	@$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.vtx -c $(2) -w $(3) -l $(4)
 endef
 
 define _bench_write
-	@$(J) $(TARGET) -p $(T_RIO) --dir $(TEST_DIR) --size $(1) -d test.$(1).write.rio -c $(2) -w $(3) -l $(4)
-	@$(J) $(TARGET) -p $(T_VTX) --dir $(TEST_DIR) --size $(1) -d test.$(1).write.vtx -c $(2) -w $(3) -l $(4)
+	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) --size $(1) -d test.$(1).write.rio -c $(2) -w $(3) -l $(4)
+	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) --size $(1) -d test.$(1).write.vtx -c $(2) -w $(3) -l $(4)
+    @$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) --size $(1) -d test.$(1).write.vtx -c $(2) -w $(3) -l $(4)
 endef
 
 bench_dummy: $(TARGET) $(TEST_FILES)
