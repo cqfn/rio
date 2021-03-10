@@ -85,13 +85,13 @@ bench_read: $(TARGET) $(TEST_FILES)
 	$(call _bench_read,10240,1,100,200)
 
 	@echo "### 100M files"
-	$(call _bench_read,102400,100,50,1)
-	$(call _bench_read,102400,10,50,10)
-	$(call _bench_read,102400,1,50,100)
+	$(call _bench_read,102400,500,50,1)
+	$(call _bench_read,102400,50,50,10)
+	$(call _bench_read,102400,5,50,100)
 
 	@echo "### 1G files"
-	$(call _bench_read,1048576,10,10,1)
-	$(call _bench_read,1048576,1,10,10)
+	$(call _bench_read,1048576,50,10,1)
+	$(call _bench_read,1048576,5,10,10)
 
 bench_write: $(TARGET) $(TEST_FILES)
 	@echo "## Write tests"
@@ -114,13 +114,13 @@ bench_write: $(TARGET) $(TEST_FILES)
 	$(call _bench_write,10240,1,100,200)
 
 	@echo "### 100M files"
-	$(call _bench_write,102400,100,50,1)
-	$(call _bench_write,102400,10,50,10)
-	$(call _bench_write,102400,1,50,100)
+	$(call _bench_write,102400,500,50,1)
+	$(call _bench_write,102400,50,50,10)
+	$(call _bench_write,102400,5,50,100)
 
 	@echo "### 1G files"
-	$(call _bench_write,1048576,10,10,1)
-	$(call _bench_write,1048576,1,10,10)
+	$(call _bench_write,1048576,50,10,1)
+	$(call _bench_write,1048576,5,10,10)
 
 
 bench_copy: $(TARGET) $(TEST_FILES)
