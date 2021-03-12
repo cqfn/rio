@@ -5,17 +5,21 @@ T_VTX := org.cqfn.rio.bench.VertxTarget
 T_FLUX := org.cqfn.rio.bench.FluxTarget
 TEST_FILES = test.1 test.1024 test.10240 test.102400 test.1048576
 TEST_DIR = /var/tmp/rio-bench
+LOG_DIR := $(PWD)/logs
 
-.PHONY: all clean bench_dummy bench_read bench_copy bench_write bench_all
-
+.PHONY: all
 all: benchmarks
 
 $(TEST_DIR):
 	mkdir -pv $(TEST_DIR)
 
+$(LOG_DIR):
+	mkdir -pv $(LOG_DIR)
+
 $(TARGET):
 	mvn clean install -f .. -DskipTests=true -P\!qulice
 	mvn clean package
+	rm -fr $(LOG_DIR)
 
 define urand_test_res
 	dd if=/dev/urandom of=$(TEST_DIR)/test.$(1) bs=1024 count=$(1)
@@ -26,9 +30,11 @@ test.%: $(TEST_DIR)
 	  $(call urand_test_res,$(subst test.,,$@)); \
 	fi
 
+.PHONY: distclean
 distclean: clean
 	rm -vf $(TEST_DIR)/test.*
 
+.PHONY: clean
 clean:
 	mvn clean
 
@@ -39,121 +45,97 @@ define _bench_dummy
 endef
 
 define _bench_read
-	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4)
-	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4)
-    @$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4)
-endef
-
-define _bench_copy
-	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.rio -c $(2) -w $(3) -l $(4)
-	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.vtx -c $(2) -w $(3) -l $(4)
-	@$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.vtx -c $(2) -w $(3) -l $(4)
+	@echo "bench_read size=$(1) count=$(2) warmup=$(3) parallel=$(4)"
+	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/rio-read_"$(1)_$(2)_$(4)".bench
+	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/vertx-read_"$(1)_$(2)_$(4)".bench
+	@$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) -s test.$(1) -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/flux-read_"$(1)_$(2)_$(4)".bench
 endef
 
 define _bench_write
-	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) --size $(1) -d test.$(1).write.rio -c $(2) -w $(3) -l $(4)
-	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) --size $(1) -d test.$(1).write.vtx -c $(2) -w $(3) -l $(4)
-    @$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) --size $(1) -d test.$(1).write.vtx -c $(2) -w $(3) -l $(4)
+	@echo "bench_write size=$(1) count=$(2) warmup=$(3) parallel=$(4)"
+	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) --size $(1) -d test.$(1).write.rio -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/rio-write_"$(1)_$(2)_$(4)".bench
+	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) --size $(1) -d test.$(1).write.vtx -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/vertx-write_"$(1)_$(2)_$(4)".bench
+	@$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) --size $(1) -d test.$(1).write.vtx -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/flux-write_"$(1)_$(2)_$(4)".bench
 endef
 
-bench_dummy: $(TARGET) $(TEST_FILES)
-	@echo "### Dummy tests"
-	$(call _bench_dummy,1,1000,100)
-	$(call _bench_dummy,1000,1000,100)
-	$(call _bench_dummy,10000,1000,100)
-	$(call _bench_dummy,100000,500,50)
-	$(call _bench_dummy,1000000,100,10)
+define _bench_copy
+	@$(J) $(TARGET) -p $(T_RIO)  --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.rio -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/rio-copy_"$(1)_$(2)_$(4)".bench
+	@$(J) $(TARGET) -p $(T_VTX)  --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.vtx -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/vertx-copy_"$(1)_$(2)_$(4)".bench
+	@$(J) $(TARGET) -p $(T_FLUX) --dir $(TEST_DIR) -s test.$(1) -d test.$(1).cpy.vtx -c $(2) -w $(3) -l $(4) > \
+	  $(LOG_DIR)/flux-copy_"$(1)_$(2)_$(4)".bench
+endef
 
-bench_read: $(TARGET) $(TEST_FILES)
-	@echo "## Read tests"
-	@echo "### 1K files"
-	$(call _bench_read,1,1000,100,1)
-	$(call _bench_read,1,1000,100,10)
-	$(call _bench_read,1,1000,100,100)
-	$(call _bench_read,1,1000,100,1000)
+.PHONY: bench_read
+bench_read: $(TARGET) $(TEST_FILES) $(LOG_DIR)
+	# Read tests
+	# 1K
+	$(call _bench_read,1,1000000,100,1) # 976.5625 Mb
+	$(call _bench_read,1,100000,100,10) # 976.5625 Mb
+	$(call _bench_read,1,10000,100,100) # 976.5625 Mb
+	# 1M
+	$(call _bench_read,1024,10000,100,1) # 9.765625 Gb
+	$(call _bench_read,1024,1000,100,10) # 9.765625 Gb
+	$(call _bench_read,1024,1000,10,100) # 97.65625 Gb
+	# 10M
+	$(call _bench_read,10240,1000,100,1) # 9.765625 Gb
+	$(call _bench_read,10240,1000,100,10) # 97.65625 Gb
+	$(call _bench_read,10240,500,10,20) # 97.65625 Gb
+	# 100M
+	$(call _bench_read,102400,1000,50,1) # 97.65625 Gb
+	$(call _bench_read,102400,500,50,2) # 97.65625 Gb
+	$(call _bench_read,102400,200,20,5) # 97.65625 Gb
 
-	@echo "### 1M files"
-	$(call _bench_read,1024,1000,100,1)
-	$(call _bench_read,1024,1000,100,10)
-	$(call _bench_read,1024,100,100,100)
-	$(call _bench_read,1024,10,100,1000)
+.PHONY: bench_write
+bench_write: $(TARGET) $(TEST_FILES) $(LOG_DIR)
+	# Write tests
+	# 1K
+	$(call _bench_write,1,1000000,100,1) # 976.5625 Mb
+	$(call _bench_write,1,100000,100,10) # 976.5625 Mb
+	$(call _bench_write,1,10000,100,100) # 976.5625 Mb
+	# 1M
+	$(call _bench_write,1024,10000,100,1) # 9.765625 Gb
+	$(call _bench_write,1024,1000,100,10) # 9.765625 Gb
+	$(call _bench_write,1024,1000,10,100) # 97.65625 Gb
+	# 10M
+	$(call _bench_write,10240,1000,100,1) # 9.765625 Gb
+	$(call _bench_write,10240,1000,100,10) # 97.65625 Gb
+	$(call _bench_write,10240,500,10,20) # 97.65625 Gb
+	# 100M
+	$(call _bench_write,102400,1000,50,1) # 97.65625 Gb
+	$(call _bench_write,102400,500,50,2) # 97.65625 Gb
+	$(call _bench_write,102400,200,20,5) # 97.65625 Gb
 
-	@echo "### 10M files"
-	$(call _bench_read,10240,500,100,1)
-	$(call _bench_read,10240,50,100,10)
-	$(call _bench_read,10240,5,100,100)
-	$(call _bench_read,10240,1,100,200)
+.PHONY: bench_copy
+bench_copy: $(TARGET) $(TEST_FILES) $(LOG_DIR)
+	# Copy tests
+	# 1K
+	$(call _bench_copy,1,1000000,100,1) # 976.5625 Mb
+	$(call _bench_copy,1,100000,100,10) # 976.5625 Mb
+	$(call _bench_copy,1,10000,100,100) # 976.5625 Mb
+	# 1M
+	$(call _bench_copy,1024,10000,100,1) # 9.765625 Gb
+	$(call _bench_copy,1024,1000,100,10) # 9.765625 Gb
+	$(call _bench_copy,1024,1000,10,100) # 97.65625 Gb
+	# 10M
+	$(call _bench_copy,10240,1000,100,1) # 9.765625 Gb
+	$(call _bench_copy,10240,1000,100,10) # 97.65625 Gb
+	$(call _bench_copy,10240,500,10,20) # 97.65625 Gb
+	# 100M
+	$(call _bench_copy,102400,1000,50,1) # 97.65625 Gb
+	$(call _bench_copy,102400,500,50,2) # 97.65625 Gb
+	$(call _bench_copy,102400,200,20,5) # 97.65625 Gb
 
-	@echo "### 100M files"
-	$(call _bench_read,102400,500,50,1)
-	$(call _bench_read,102400,50,50,10)
-	$(call _bench_read,102400,5,50,100)
+.PHONY: bench_all
+bench_all: bench_read bench_write bench_copy
 
-	@echo "### 1G files"
-	$(call _bench_read,1048576,50,10,1)
-	$(call _bench_read,1048576,5,10,10)
-
-bench_write: $(TARGET) $(TEST_FILES)
-	@echo "## Write tests"
-	@echo "### 1K files"
-	$(call _bench_write,1,1000,100,1)
-	$(call _bench_write,1,1000,100,10)
-	$(call _bench_write,1,100,100,100)
-	$(call _bench_write,1,100,100,1000)
-
-	@echo "### 1M files"
-	$(call _bench_write,1024,1000,100,1)
-	$(call _bench_write,1024,1000,100,10)
-	$(call _bench_write,1024,100,100,100)
-	$(call _bench_write,1024,10,100,1000)
-
-	@echo "### 10M files"
-	$(call _bench_write,10240,500,100,1)
-	$(call _bench_write,10240,50,100,10)
-	$(call _bench_write,10240,5,100,100)
-	$(call _bench_write,10240,1,100,200)
-
-	@echo "### 100M files"
-	$(call _bench_write,102400,500,50,1)
-	$(call _bench_write,102400,50,50,10)
-	$(call _bench_write,102400,5,50,100)
-
-	@echo "### 1G files"
-	$(call _bench_write,1048576,50,10,1)
-	$(call _bench_write,1048576,5,10,10)
-
-
-bench_copy: $(TARGET) $(TEST_FILES)
-	@echo "## Copy tests"
-	@echo "### 1K files"
-	$(call _bench_copy,1,1000,100,1)
-	$(call _bench_copy,1,1000,100,10)
-	$(call _bench_copy,1,100,100,100)
-	$(call _bench_copy,1,100,100,1000)
-
-	@echo "### 1M files"
-	$(call _bench_copy,1024,1000,100,1)
-	$(call _bench_copy,1024,1000,100,10)
-	$(call _bench_copy,1024,100,100,100)
-	$(call _bench_copy,1024,100,100,1000)
-
-	@echo "### 10M files"
-	$(call _bench_copy,10240,1000,100,1)
-	$(call _bench_copy,10240,1000,100,10)
-	$(call _bench_copy,10240,100,100,100)
-	$(call _bench_copy,10240,10,100,1000)
-
-	@echo "### 100M files"
-	$(call _bench_copy,10240,500,50,1)
-	$(call _bench_copy,10240,50,50,10)
-	$(call _bench_copy,10240,5,50,100)
-	$(call _bench_copy,10240,1,50,200)
-
-	@echo "### 1G files"
-	$(call _bench_copy,1048576,100,10,1)
-	$(call _bench_copy,1048576,100,1,10)
-
-bench_all: bench_dummy bench_read bench_write bench_copy
-
-benchmarks: bench_all
+.PHONY: benchmarks
+benchmarks: clean bench_all
 

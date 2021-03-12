@@ -112,16 +112,14 @@ public final class Benchmark {
         for (int wm = 0; wm < warmup; wm++) {
             consume(target, dst, producer(target, src, size, par)).join();
         }
-        final Stats stats = new Stats(count, par);
         for (int pos = 0; pos < count; pos++) {
             final long start = System.nanoTime();
             consume(target, dst, 
-                    producer(target, src, size, par).stream().map(pub -> Flowable.fromPublisher(pub)
-                        .doOnNext(bb -> stats.putBytes(bb.remaining()))).collect(Collectors.toList())).join();
+                    producer(target, src, size, par).stream().map(pub -> Flowable.fromPublisher(pub))
+                        .collect(Collectors.toList())).join();
             final long end = System.nanoTime();
-            stats.put(pos, end - start);
+            System.out.println(end - start);
         }
-        stats.print(TimeUnit.MILLISECONDS, new Stats.MarkdownOut(System.out, target.getClass().getSimpleName()));
         System.exit(0);
     }
 
