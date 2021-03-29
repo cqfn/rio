@@ -33,6 +33,7 @@ import java.io.PipedOutputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import org.cqfn.rio.WriteGreed;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
@@ -59,17 +60,23 @@ class ReactiveOutputStreamTest {
     }
 
     @Test
+    @SuppressWarnings("PMD.AssignmentInOperand")
     void transferDataToPipedStream() throws IOException {
         try (
             PipedInputStream in = new PipedInputStream();
             PipedOutputStream out = new PipedOutputStream(in)
         ) {
-            final byte[] data = "abc".getBytes();
+            final byte[] data = this.getBinFile();
             final byte[] res = new byte[data.length];
-            new ReactiveOutputStream(out)
+            final CompletableFuture<Void> future = new ReactiveOutputStream(out)
                 .write(Flowable.fromArray(ByteBuffer.wrap(data)), WriteGreed.SYSTEM)
-                .toCompletableFuture().join();
-            in.read(res);
+                .toCompletableFuture();
+            int offset = 0;
+            int read;
+            while ((read = in.read(res, offset, res.length - offset)) > 0) {
+                offset += read;
+            }
+            future.join();
             MatcherAssert.assertThat(
                 res,
                 new IsEqual<>(data)
@@ -88,25 +95,6 @@ class ReactiveOutputStreamTest {
             out.toByteArray(),
             new IsEqual<>(data)
         );
-    }
-
-    @Test
-    void transferResourceToPipedStream() throws IOException {
-        try (
-            PipedInputStream in = new PipedInputStream();
-            PipedOutputStream out = new PipedOutputStream(in)
-        ) {
-            final byte[] data = this.getBinFile();
-            final byte[] res = new byte[data.length];
-            new ReactiveOutputStream(out)
-                .write(Flowable.fromArray(ByteBuffer.wrap(data)), WriteGreed.SYSTEM)
-                .toCompletableFuture().join();
-            in.read(res);
-            MatcherAssert.assertThat(
-                res,
-                new IsEqual<>(data)
-            );
-        }
     }
 
     @SuppressWarnings("PMD.AssignmentInOperand")
