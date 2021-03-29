@@ -127,5 +127,4 @@ class ReactiveOutputStreamTest {
         }
         return buffer.toByteArray();
     }
-
 }
