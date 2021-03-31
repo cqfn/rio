@@ -30,7 +30,25 @@ import org.reactivestreams.Subscription;
 
 /**
  * Adaptive write greed that pays attention to
- * consumers demands.
+ * consumers demands. It's one of the key element of the RIO
+ * algorithm.
+ * <p>
+ * Greed object is notified on two events: on receiving chung of data
+ * from the producer, and on finishing processing this chunk.
+ * It requests the {@code amount} of chunks on chunks receiving
+ * if the received element is a ordinary equal to {@code amount - shift},
+ * let's call this element as requesting point.
+ *
+ * This greed implementation monitors the consumer's queue size
+ * and pay attention to the demand of the consumer:
+ * if queue size is equal to zero on requesting point,
+ * than requesting amount is increased twice and shift is increased by one
+ * if it's less than {@code 3} (it's imperically tested that increasing
+ * shift more than 3 doesn't give any positive performance improvement).
+ * If the queue size is greater than half of amount on requesting element,
+ * the size is reduced twice but no less than 3, and shift is reduced by one
+ * of it's not less than 3.
+ *
  * @since 0.3
  */
 public final class AdaptiveGreed implements WriteGreed {
@@ -52,14 +70,14 @@ public final class AdaptiveGreed implements WriteGreed {
     private volatile long shift;
 
     /**
-     * Counter.
+     * Request counter.
      */
     private final AtomicLong cnt;
 
     /**
-     * Received counter.
+     * Queue size.
      */
-    private final AtomicLong rec;
+    private final AtomicLong queue;
 
     /**
      * New adaptie greed with initial values.
@@ -68,33 +86,73 @@ public final class AdaptiveGreed implements WriteGreed {
      */
     @SuppressWarnings("PMD.ConstructorOnlyInitializesOrCallOtherConstructors")
     public AdaptiveGreed(final long amount, final long shift) {
+        if (amount < 1) {
+            throw new IllegalArgumentException("Amount should be greater than 1");
+        }
         if (shift >= amount) {
             throw new IllegalArgumentException("Shift should be less than amount");
         }
         this.amount = amount;
         this.shift = shift;
         this.cnt = new AtomicLong();
-        this.rec = new AtomicLong();
+        this.queue = new AtomicLong();
     }
 
     @Override
-    public boolean request(final Subscription sub) {
-        final long pos = this.cnt.getAndIncrement();
-        final boolean result = pos == 0 || pos % (this.amount - this.shift + 1) == 0;
-        if (result) {
-            if (this.cnt.get() - this.rec.get() < this.shift + 1) {
-                this.shift *= 2;
-            }
-            if (this.shift > this.amount / 2) {
-                this.amount *= 2;
-            }
-            sub.request(this.amount);
+    public void init(final Subscription sub) {
+        sub.request(this.amount);
+    }
+
+    @Override
+    public void received(final Subscription sub) {
+        final long size = this.queue.incrementAndGet();
+        final long pos = this.cnt.incrementAndGet();
+        assert size >= 0 : "received: conumer drains more elements than produced";
+        assert pos >= 0 : "position can not be negative";
+        if (pos == this.amount - this.shift) {
+            System.out.printf("WG-A: request %d (size=%d pos=%s)\n", amount, size, pos);
+            this.adjust(size);
+            sub.request(amount);
+            this.cnt.addAndGet(-pos);
         }
-        return result;
     }
 
     @Override
-    public void received() {
-        this.rec.incrementAndGet();
+    public void processed(final Subscription sub) {
+        long size = this.queue.decrementAndGet();
+        assert size >= 0 : "processed: conumer drains more elements than produced";
+    }
+
+    /**
+     * Adjust requested amount and shift.
+     * @param size Current queue size
+     */
+    private void adjust(final long size) {
+        long oldAmount = this.amount;
+        long oldShift = this.shift;
+        if (size < this.shift) {
+            synchronized (this.queue) {
+                if (size < this.shift) {
+                    this.amount *= 2;
+                    if (this.shift < 3) {
+                        this.shift++;
+                    }
+                }
+                System.out.printf("adjusted↑ [%d(%d)] -> [%d(%d)]\n",
+                        oldAmount, oldShift, this.amount, this.shift);
+            }
+        }
+        if (size > this.amount && this.amount > 6) {
+            synchronized (this.queue) {
+                if (size > this.amount) {
+                    this.amount /= 2;
+                }
+                if (this.shift > 1) {
+                    this.shift--;
+                }
+                System.out.printf("adjusted↓ [%d(%d)] -> [%d(%d)]\n",
+                        oldAmount, oldShift, this.amount, this.shift);
+            }
+        }
     }
 }

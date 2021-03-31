@@ -111,7 +111,7 @@ final class WritableChannelSubscriber extends CompletableFuture<Void>
             return;
         }
         this.queue = new WriteTaskQueue(this, chan, this.sub, this.greed, this.exec);
-        this.queue.accept(new WriteRequest.Init(this));
+        this.greed.init(subscription);
     }
 
     @Override

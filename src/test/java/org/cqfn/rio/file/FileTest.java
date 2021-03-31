@@ -154,22 +154,10 @@ public final class FileTest {
 
     @Test
     void requestNextItemsOnlyOnDemand(@TempDir final Path tmp,
-        @BufferSource(buffers = 5) final Publisher<ByteBuffer> source) throws Exception {
-        final WriteGreed.Constant greed = new WriteGreed.Constant(3, 1);
-        final AtomicInteger requests = new AtomicInteger();
+        @BufferSource(buffers = 100) final Publisher<ByteBuffer> source) throws Exception {
         new File(tmp.resolve("output1")).write(
-            source,
-            sub -> {
-                final boolean requested = greed.request(sub);
-                if (requested) {
-                    requests.incrementAndGet();
-                }
-                return requested;
-            }
+            source, new WriteGreed.Constant(1, 0)
         ).toCompletableFuture().get();
-        MatcherAssert.assertThat(
-            requests.get(), Matchers.greaterThanOrEqualTo(3)
-        );
     }
 
     @Test

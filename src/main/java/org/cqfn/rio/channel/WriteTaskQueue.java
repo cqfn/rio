@@ -49,6 +49,11 @@ import org.reactivestreams.Subscription;
 final class WriteTaskQueue implements Runnable {
 
     /**
+     * Attempts to loop for receive next request.
+     */
+    private static final int LOOP_ATTEMPTS = 5;
+
+    /**
      * Target future.
      */
     private final CompletableFuture<Void> future;
@@ -108,30 +113,27 @@ final class WriteTaskQueue implements Runnable {
     @Override
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public void run() {
-        boolean retry = false;
+        int attemts = WriteTaskQueue.LOOP_ATTEMPTS;
         while (!this.future.isDone()) {
             // requesting next chunk of byte buffers according to greed strategy
-            final boolean requested = !retry && this.greed.request(this.sub.get());
             WriteRequest next = this.queue.poll();
             // if no next item, try to exit the loop
             final boolean empty = next == null;
-            if (!requested && empty) {
+            if (empty && attemts-- > 0) {
                 Thread.yield();
-                retry = false;
                 continue;
             }
+            // no more retries
             if (empty) {
+                assert attemts == 0;
                 // mark this loop as finished
                 this.running.set(false);
                 // recover - if next item available and this loop is still not running
                 // continue running this loop and process it
                 if (!this.queue.isEmpty() && this.running.compareAndSet(false, true)) {
-                    if (this.future.isDone()) {
-                        break;
-                    }
+                    attemts = WriteTaskQueue.LOOP_ATTEMPTS;
                     next = this.queue.poll();
                     if (next == null) {
-                        retry = true;
                         continue;
                     }
                 } else {
@@ -139,10 +141,13 @@ final class WriteTaskQueue implements Runnable {
                     return;
                 }
             }
-            retry = false;
-            this.greed.received();
+            assert !empty && next != null : "can't process empty or null element";
             next.process(this.channel);
+            this.greed.processed(this.sub.get());
+            attemts = WriteTaskQueue.LOOP_ATTEMPTS;
         }
+
+        // future completed
         if (this.channel.isOpen()) {
             try {
                 this.channel.close();
@@ -150,7 +155,7 @@ final class WriteTaskQueue implements Runnable {
                 Logger.warn(this, "Failed to close channel: %[exception]s", err);
             }
         }
-        Optional.ofNullable(this.sub.getAndSet(null)).ifPresent(Subscription::cancel);
+        // Optional.ofNullable(this.sub.getAndSet(null)).ifPresent(Subscription::cancel);
         this.running.set(false);
     }
 
@@ -165,6 +170,7 @@ final class WriteTaskQueue implements Runnable {
         if (req instanceof WriteRequest.Error) {
             this.queue.clear();
         }
+        this.greed.received(this.sub.get());
         this.queue.add(req);
         if (this.running.compareAndSet(false, true)) {
             this.exec.execute(this);
