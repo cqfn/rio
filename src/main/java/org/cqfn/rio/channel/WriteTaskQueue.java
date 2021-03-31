@@ -25,17 +25,17 @@
 package org.cqfn.rio.channel;
 
 import com.jcabi.log.Logger;
+import org.cqfn.rio.WriteGreed;
+import org.jctools.queues.SpscUnboundedArrayQueue;
+import org.reactivestreams.Subscription;
+
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import org.cqfn.rio.WriteGreed;
-import org.jctools.queues.SpscUnboundedArrayQueue;
-import org.reactivestreams.Subscription;
 
 /**
  * Write subscription runnable task loop.
@@ -113,27 +113,29 @@ final class WriteTaskQueue implements Runnable {
     @Override
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public void run() {
-        int attemts = WriteTaskQueue.LOOP_ATTEMPTS;
+        int attempts = WriteTaskQueue.LOOP_ATTEMPTS;
         while (!this.future.isDone()) {
             // requesting next chunk of byte buffers according to greed strategy
             WriteRequest next = this.queue.poll();
             // if no next item, try to exit the loop
-            final boolean empty = next == null;
-            if (empty && attemts-- > 0) {
-                Thread.yield();
-                continue;
-            }
-            // no more retries
+            boolean empty = next == null;
+
             if (empty) {
-                assert attemts == 0;
+                if (--attempts > 0) {
+//                    Thread.yield();
+                    continue;
+                }
+                assert attempts == 0 : "attempt skipped";
                 // mark this loop as finished
-                this.running.set(false);
+                final boolean stopped = this.running.compareAndSet(true,false);
+                assert stopped : "running flag inconsistency";
                 // recover - if next item available and this loop is still not running
                 // continue running this loop and process it
                 if (!this.queue.isEmpty() && this.running.compareAndSet(false, true)) {
-                    attemts = WriteTaskQueue.LOOP_ATTEMPTS;
                     next = this.queue.poll();
-                    if (next == null) {
+                    empty = next == null;
+                    if (empty) {
+                        attempts = WriteTaskQueue.LOOP_ATTEMPTS;
                         continue;
                     }
                 } else {
@@ -144,7 +146,7 @@ final class WriteTaskQueue implements Runnable {
             assert !empty && next != null : "can't process empty or null element";
             next.process(this.channel);
             this.greed.processed(this.sub.get());
-            attemts = WriteTaskQueue.LOOP_ATTEMPTS;
+            attempts = WriteTaskQueue.LOOP_ATTEMPTS;
         }
 
         // future completed
@@ -175,5 +177,9 @@ final class WriteTaskQueue implements Runnable {
         if (this.running.compareAndSet(false, true)) {
             this.exec.execute(this);
         }
+    }
+
+    public int size() {
+        return this.queue.size();
     }
 }

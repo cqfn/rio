@@ -61,4 +61,10 @@ public @interface BufferSource {
      * @return Buffers to produce
      */
     long buffers();
+
+    /**
+     * Genrator delay.
+     * @return Delay in millis
+     */
+    long delay() default 0;
 }

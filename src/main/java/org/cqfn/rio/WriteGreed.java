@@ -24,8 +24,9 @@
  */
 package org.cqfn.rio;
 
-import java.util.concurrent.atomic.AtomicLong;
 import org.reactivestreams.Subscription;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Greed level of write consumer.
@@ -120,13 +121,11 @@ public interface WriteGreed {
         @Override
         public void init(final Subscription sub) {
             sub.request(this.amount);
-            System.out.println("WG-C: init");
         }
 
         @Override
         public void received(final Subscription sub) {
             final long pos = this.cnt.incrementAndGet();
-            System.out.printf("WG-C: received %d\n", pos);
             if (pos == this.amount - this.shift) {
                 sub.request(this.amount);
                 this.cnt.addAndGet(-pos);

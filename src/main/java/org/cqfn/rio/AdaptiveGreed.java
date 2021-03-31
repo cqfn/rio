@@ -25,8 +25,10 @@
 
 package org.cqfn.rio;
 
-import java.util.concurrent.atomic.AtomicLong;
 import org.reactivestreams.Subscription;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Adaptive write greed that pays attention to
@@ -38,7 +40,7 @@ import org.reactivestreams.Subscription;
  * It requests the {@code amount} of chunks on chunks receiving
  * if the received element is a ordinary equal to {@code amount - shift},
  * let's call this element as requesting point.
- *
+ * <p>
  * This greed implementation monitors the consumer's queue size
  * and pay attention to the demand of the consumer:
  * if queue size is equal to zero on requesting point,
@@ -80,9 +82,18 @@ public final class AdaptiveGreed implements WriteGreed {
     private final AtomicLong queue;
 
     /**
+     * Adjusting flag instead of synchronisation:
+     * write task queue allows only single consumer single producer operations,
+     * adjusting adaptive parameters should be performed on receiving next chunk only.
+     * We assert that using this flag.
+     */
+    private final AtomicBoolean adjusting;
+
+    /**
      * New adaptie greed with initial values.
+     *
      * @param amount Amount to request
-     * @param shift Request items before shifted amount was processed
+     * @param shift  Request items before shifted amount was processed
      */
     @SuppressWarnings("PMD.ConstructorOnlyInitializesOrCallOtherConstructors")
     public AdaptiveGreed(final long amount, final long shift) {
@@ -96,6 +107,7 @@ public final class AdaptiveGreed implements WriteGreed {
         this.shift = shift;
         this.cnt = new AtomicLong();
         this.queue = new AtomicLong();
+        this.adjusting = new AtomicBoolean();
     }
 
     @Override
@@ -105,12 +117,11 @@ public final class AdaptiveGreed implements WriteGreed {
 
     @Override
     public void received(final Subscription sub) {
-        final long size = this.queue.incrementAndGet();
+        final long size = this.queue.getAndIncrement();
         final long pos = this.cnt.incrementAndGet();
         assert size >= 0 : "received: conumer drains more elements than produced";
         assert pos >= 0 : "position can not be negative";
         if (pos == this.amount - this.shift) {
-            System.out.printf("WG-A: request %d (size=%d pos=%s)\n", amount, size, pos);
             this.adjust(size);
             sub.request(amount);
             this.cnt.addAndGet(-pos);
@@ -125,34 +136,34 @@ public final class AdaptiveGreed implements WriteGreed {
 
     /**
      * Adjust requested amount and shift.
+     *
      * @param size Current queue size
      */
     private void adjust(final long size) {
+        if (!this.adjusting.compareAndSet(false, true)) {
+            throw new IllegalStateException("Unsupported adjusting enter overlaps");
+        }
+
         long oldAmount = this.amount;
         long oldShift = this.shift;
         if (size < this.shift) {
-            synchronized (this.queue) {
-                if (size < this.shift) {
-                    this.amount *= 2;
-                    if (this.shift < 3) {
-                        this.shift++;
-                    }
-                }
-                System.out.printf("adjusted↑ [%d(%d)] -> [%d(%d)]\n",
-                        oldAmount, oldShift, this.amount, this.shift);
+            this.amount *= 2;
+            if (this.shift < 3) {
+                this.shift++;
             }
+            System.out.printf("adjusted↑ [%d(%d)] -> [%d(%d)]\n",
+                    oldAmount, oldShift, this.amount, this.shift);
         }
         if (size > this.amount && this.amount > 6) {
-            synchronized (this.queue) {
-                if (size > this.amount) {
-                    this.amount /= 2;
-                }
-                if (this.shift > 1) {
-                    this.shift--;
-                }
-                System.out.printf("adjusted↓ [%d(%d)] -> [%d(%d)]\n",
-                        oldAmount, oldShift, this.amount, this.shift);
+            this.amount /= 2;
+            if (this.shift > 1) {
+                this.shift--;
             }
+            System.out.printf("adjusted↓ [%d(%d)] -> [%d(%d)]\n",
+                    oldAmount, oldShift, this.amount, this.shift);
+        }
+        if (!this.adjusting.compareAndSet(true, false)) {
+            throw new IllegalStateException("Adjusting ended illegally");
         }
     }
 }
