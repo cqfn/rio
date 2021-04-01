@@ -174,24 +174,4 @@ abstract class WriteRequest {
             this.future.completeExceptionally(this.err);
         }
     }
-
-    /**
-     * Init request.
-     * @since 0.2
-     */
-    static final class Init extends WriteRequest {
-
-        /**
-         * Ctor.
-         * @param future Write future
-         */
-        Init(final CompletableFuture<Void> future) {
-            super(future);
-        }
-
-        @Override
-        void process(final WritableByteChannel chan) {
-            // nothing
-        }
-    }
 }
