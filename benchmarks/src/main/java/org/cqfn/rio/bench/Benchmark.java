@@ -8,14 +8,19 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.Collections;
 import java.util.List;
+import io.reactivex.BackpressureStrategy;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -24,6 +29,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.reactivestreams.Publisher;
+
+import java.lang.management.*;
 
 /**
  * Benchmarks CLI app.
@@ -89,6 +96,12 @@ public final class Benchmark {
                 .desc("Test dir")
                 .type(String.class)
                 .build()
+        ).addOption(
+            Option.builder()
+                .longOpt("memory")
+                .desc("Analyze memory usage, not performance")
+                .type(Boolean.class)
+                .build()
         );
 
     public static void main(final String... args) throws Exception {
@@ -100,6 +113,10 @@ public final class Benchmark {
             System.exit(1);
             return;
         }
+
+        String name = ManagementFactory.getRuntimeMXBean().getName();
+        System.err.printf("started: %s\n", name);
+
         final BenchmarkTarget target =
             (BenchmarkTarget) Class.forName(cli.getOptionValue('p')).getConstructor().newInstance();
         final String dir = cli.getOptionValue("dir");
@@ -109,16 +126,41 @@ public final class Benchmark {
         final int count = Integer.parseInt(cli.getOptionValue('c'));
         final int par = Optional.ofNullable(cli.getOptionValue('l')).map(Integer::parseInt).orElse(1);
         final int size = Optional.ofNullable(cli.getOptionValue("size")).map(Integer::parseInt).orElse(0);
+        final boolean memory = Optional.ofNullable(cli.getOptionValue("memory")).map(Boolean::parseBoolean).orElse(false);
+        // warmup
         for (int wm = 0; wm < warmup; wm++) {
             consume(target, dst, producer(target, src, size, par)).join();
         }
+        // benchmark
+        final AtomicBoolean run = new AtomicBoolean(false);
+        ScheduledExecutorService profiler = null;
+        if (memory) {
+            final MemoryMXBean mbean = ManagementFactory.getMemoryMXBean();
+            profiler = Executors.newSingleThreadScheduledExecutor();
+            profiler.scheduleAtFixedRate(
+                () -> {
+                    if (run.get()) {
+                        MemoryUsage usage = mbean.getHeapMemoryUsage();
+                        System.out.println(usage.getUsed());
+                    }
+                },
+                1, 1, TimeUnit.MILLISECONDS
+            );
+            Thread.sleep(5);
+        }
         for (int pos = 0; pos < count; pos++) {
+            System.gc();
+            run.set(true);
             final long start = System.nanoTime();
-            consume(target, dst, 
-                    producer(target, src, size, par).stream().map(pub -> Flowable.fromPublisher(pub))
-                        .collect(Collectors.toList())).join();
+            consume(target, dst, producer(target, src, size, par)).join();
             final long end = System.nanoTime();
-            System.out.println(end - start);
+            run.set(false);
+            if (!memory) {
+                System.out.println(end - start);
+            }
+        }
+        if (profiler != null) {
+            profiler.shutdown();
         }
         System.exit(0);
     }
@@ -132,13 +174,6 @@ public final class Benchmark {
         return Paths.get(dir, val);
     }
 
-    private static final byte[] RANDOM_KB;
-
-    static {
-        RANDOM_KB = new byte[1024];
-        new SecureRandom().nextBytes(RANDOM_KB);
-    }
-
     private static List<Publisher<ByteBuffer>> producer(final BenchmarkTarget target,
         final Path path, int size, int par) {
         return IntStream.range(0, par).mapToObj(x -> producer(target, size, path))
@@ -148,16 +183,9 @@ public final class Benchmark {
     private static Publisher<ByteBuffer> producer(final BenchmarkTarget target, int size,
         final Path path) {
         if (path == null) {
-            final AtomicInteger cnt = new AtomicInteger(size);
-            return Flowable.generate(
-                emitter -> {
-                    final int next = cnt.decrementAndGet();
-                    if (next >= 0) {
-                        emitter.onNext(ByteBuffer.wrap(RANDOM_KB));
-                    } else {
-                        emitter.onComplete();
-                    }
-                }
+            return Flowable.create(
+                new BenchmarkTarget.BufferSourceGenerator(size, 8*1024),
+                BackpressureStrategy.ERROR
             );
         }
         return target.read(path);

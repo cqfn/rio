@@ -144,23 +144,17 @@ public final class AdaptiveGreed implements WriteGreed {
             throw new IllegalStateException("Unsupported adjusting enter overlaps");
         }
 
-        long oldAmount = this.amount;
-        long oldShift = this.shift;
         if (size < this.shift) {
             this.amount *= 2;
             if (this.shift < 3) {
                 this.shift++;
             }
-            System.out.printf("adjusted↑ [%d(%d)] -> [%d(%d)]\n",
-                    oldAmount, oldShift, this.amount, this.shift);
         }
         if (size > this.amount && this.amount > 6) {
             this.amount /= 2;
             if (this.shift > 1) {
                 this.shift--;
             }
-            System.out.printf("adjusted↓ [%d(%d)] -> [%d(%d)]\n",
-                    oldAmount, oldShift, this.amount, this.shift);
         }
         if (!this.adjusting.compareAndSet(true, false)) {
             throw new IllegalStateException("Adjusting ended illegally");

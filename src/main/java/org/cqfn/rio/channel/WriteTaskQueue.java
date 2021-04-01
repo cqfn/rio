@@ -28,9 +28,9 @@ import com.jcabi.log.Logger;
 import org.cqfn.rio.WriteGreed;
 import org.jctools.queues.SpscUnboundedArrayQueue;
 import org.reactivestreams.Subscription;
-
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -122,7 +122,7 @@ final class WriteTaskQueue implements Runnable {
 
             if (empty) {
                 if (--attempts > 0) {
-//                    Thread.yield();
+                    Thread.yield();
                     continue;
                 }
                 assert attempts == 0 : "attempt skipped";
@@ -157,7 +157,7 @@ final class WriteTaskQueue implements Runnable {
                 Logger.warn(this, "Failed to close channel: %[exception]s", err);
             }
         }
-        // Optional.ofNullable(this.sub.getAndSet(null)).ifPresent(Subscription::cancel);
+        Optional.ofNullable(this.sub.getAndSet(null)).ifPresent(Subscription::cancel);
         this.running.set(false);
     }
 
