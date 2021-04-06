@@ -24,9 +24,9 @@
  */
 package org.cqfn.rio.channel;
 
-import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.channels.ReadableByteChannel;
+import java.util.logging.Logger;
 
 /**
  * Runnable decorator which closes channel on exit.
@@ -74,7 +74,8 @@ final class CloseChanOnError implements Runnable {
             try {
                 this.chan.close();
             } catch (final IOException err) {
-                Logger.warn(this, "Failed to close channel: %[exception]s", err);
+                Logger.getLogger(this.getClass().getSimpleName())
+                    .warning(String.format("Failed to close channel: %s", err));
             }
         }
     }

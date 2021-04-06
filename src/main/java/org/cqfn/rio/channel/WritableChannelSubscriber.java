@@ -24,6 +24,11 @@
  */
 package org.cqfn.rio.channel;
 
+import org.cqfn.rio.WriteGreed;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
@@ -31,17 +36,14 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
-import org.cqfn.rio.WriteGreed;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 /**
  * Write to channel subscriber.
+ *
  * @since 0.1
  */
 final class WritableChannelSubscriber extends CompletableFuture<Void>
-    implements Subscriber<ByteBuffer> {
+        implements Subscriber<ByteBuffer> {
 
     /**
      * Channel to write.
@@ -70,12 +72,13 @@ final class WritableChannelSubscriber extends CompletableFuture<Void>
 
     /**
      * New write subscriber.
-     * @param src Source of channel
+     *
+     * @param src   Source of channel
      * @param greed Consumer greed level
-     * @param exec Executor service to process requests
+     * @param exec  Executor service to process requests
      */
     WritableChannelSubscriber(final ChannelSource<? extends WritableByteChannel> src,
-        final WriteGreed greed, final ExecutorService exec) {
+                              final WriteGreed greed, final ExecutorService exec) {
         this.src = src;
         this.sub = new AtomicReference<>();
         this.exec = exec;
@@ -84,6 +87,7 @@ final class WritableChannelSubscriber extends CompletableFuture<Void>
 
     /**
      * Accept publisher asynchronous and ask it to subscribe.
+     *
      * @param publisher Of data
      */
     public void acceptAsync(final Publisher<ByteBuffer> publisher) {
@@ -111,7 +115,7 @@ final class WritableChannelSubscriber extends CompletableFuture<Void>
             return;
         }
         this.queue = new WriteTaskQueue(this, chan, this.sub, this.greed, this.exec);
-        this.queue.accept(new WriteRequest.Init(this));
+        this.greed.init(subscription);
     }
 
     @Override

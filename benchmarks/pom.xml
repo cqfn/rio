@@ -71,6 +71,7 @@ OTHER DEALINGS IN THE SOFTWARE.
     <maven.compiler.target>11</maven.compiler.target>
     <junit-platform.version>5.6.2</junit-platform.version>
     <versions.reactive-streams>1.0.3</versions.reactive-streams>
+    <vertx.version>3.9.3</vertx.version>
   </properties>
   <dependencies>
     <!-- base -->
@@ -84,24 +85,38 @@ OTHER DEALINGS IN THE SOFTWARE.
       <artifactId>commons-cli</artifactId>
       <version>1.4</version>
     </dependency>
-
     <!-- org.cqfn.rio provider -->
     <dependency>
       <groupId>org.cqfn</groupId>
       <artifactId>rio</artifactId>
       <version>1.0-SNAPSHOT</version>
     </dependency>
-
     <!-- io.vertx.vertx provider -->
     <dependency>
-      <groupId>com.artipie</groupId>
-      <artifactId>asto</artifactId>
-      <version>0.33.7</version>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-reactive-streams</artifactId>
+      <version>${vertx.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-rx-java2</artifactId>
+      <version>${vertx.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+      <version>${vertx.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.akarnokd</groupId>
       <artifactId>rxjava2-jdk8-interop</artifactId>
       <version>0.3.7</version>
+    </dependency>
+    <!-- flux -->
+    <dependency>
+      <groupId>org.springframework.integration</groupId>
+      <artifactId>spring-integration-webflux</artifactId>
+      <version>5.3.2.RELEASE</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-nop -->
     <dependency>
@@ -110,7 +125,6 @@ OTHER DEALINGS IN THE SOFTWARE.
       <version>1.8.0-beta4</version>
       <scope>runtime</scope>
     </dependency>
-
   </dependencies>
   <build>
     <plugins>

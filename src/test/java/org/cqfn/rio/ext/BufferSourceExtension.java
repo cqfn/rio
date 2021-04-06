@@ -24,20 +24,20 @@
  */
 package org.cqfn.rio.ext;
 
-import io.reactivex.Emitter;
+import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
-import io.reactivex.functions.Consumer;
-import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicLong;
-import org.junit.jupiter.api.extension.ExtensionConfigurationException;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
-import org.junit.jupiter.api.extension.ParameterResolver;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+import org.junit.jupiter.api.extension.*;
 import org.reactivestreams.Publisher;
+
+import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Buffer source extension for {@link BufferSource}.
+ *
  * @since 0.2
  */
 public final class BufferSourceExtension implements ParameterResolver {
@@ -49,24 +49,25 @@ public final class BufferSourceExtension implements ParameterResolver {
 
     @Override
     public Object resolveParameter(final ParameterContext param, final ExtensionContext ext)
-        throws ParameterResolutionException {
+            throws ParameterResolutionException {
         final Class<?> type = param.getParameter().getType();
         if (!Publisher.class.isAssignableFrom(type)) {
             throw new ExtensionConfigurationException(
-                "@BufferSource can resolve Publisher<ByteBuffer> params only"
+                    "@BufferSource can resolve Publisher<ByteBuffer> params only"
             );
         }
         return BufferSourceExtension.publisher(
-            param.findAnnotation(BufferSource.class).orElseThrow(
-                () -> new IllegalArgumentException(
-                    "Parameter was not annotation with @BufferSource"
+                param.findAnnotation(BufferSource.class).orElseThrow(
+                        () -> new IllegalArgumentException(
+                                "Parameter was not annotation with @BufferSource"
+                        )
                 )
-            )
         );
     }
 
     /**
      * Create publisher for configuration.
+     *
      * @param config Configuration annotation
      * @return Publisher
      */
@@ -75,14 +76,15 @@ public final class BufferSourceExtension implements ParameterResolver {
         for (int pos = 0; pos < config.bufferSize(); ++pos) {
             source.put(pos, config.value());
         }
-        return Flowable.generate(new BufferSourceGenerator(source, config.buffers()));
+        return Flowable.create(new BufferSourceGenerator(source, config.buffers(), config.delay()), BackpressureStrategy.ERROR);
     }
 
     /**
      * Provider of byte buffers for write test.
+     *
      * @since 0.1
      */
-    private static final class BufferSourceGenerator implements Consumer<Emitter<ByteBuffer>> {
+    private static final class BufferSourceGenerator implements FlowableOnSubscribe<ByteBuffer> {
 
         /**
          * Source buffer.
@@ -95,22 +97,41 @@ public final class BufferSourceExtension implements ParameterResolver {
         private final AtomicLong cnt;
 
         /**
-         * New test source.
-         * @param source Source buffer
-         * @param size Amount of buffers
+         * Delay ms.
          */
-        BufferSourceGenerator(final ByteBuffer source, final long size) {
+        private final long delay;
+
+        /**
+         * New test source.
+         *
+         * @param source Source buffer
+         * @param size   Amount of buffers
+         * @param delay  Delay on generate in millis
+         */
+        BufferSourceGenerator(final ByteBuffer source, final long size, long delay) {
             this.source = source;
             this.cnt = new AtomicLong(size);
+            this.delay = delay;
         }
 
         @Override
-        public void accept(final Emitter<ByteBuffer> src) {
-            final long val = this.cnt.decrementAndGet();
-            if (val >= 0L) {
-                src.onNext(this.source.slice());
-            } else {
-                src.onComplete();
+        public void subscribe(FlowableEmitter<ByteBuffer> emitter) throws Exception {
+            while (!emitter.isCancelled()) {
+                for (long req = emitter.requested(); req > 0; req--) {
+                    final long val = this.cnt.decrementAndGet();
+                    if (val >= 0L) {
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(this.delay);
+                        } catch (final InterruptedException ignore) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                        emitter.onNext(this.source.slice());
+                    } else {
+                        emitter.onComplete();
+                        return;
+                    }
+                }
             }
         }
     }

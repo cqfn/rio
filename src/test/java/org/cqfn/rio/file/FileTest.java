@@ -25,16 +25,6 @@
 package org.cqfn.rio.file;
 
 import io.reactivex.Flowable;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.cqfn.rio.Buffers;
 import org.cqfn.rio.WriteGreed;
 import org.cqfn.rio.ext.BufferSource;
@@ -49,6 +39,16 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.reactivestreams.Publisher;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Test case for {@link File}.
@@ -125,6 +125,27 @@ public final class FileTest {
         );
     }
 
+    @RepeatedTest(10)
+    void writeWithSlowProducer(@TempDir final Path tmp,
+                               @BufferSource(buffers = 100, delay = 10) final Publisher<ByteBuffer> source) throws Exception {
+        final Path out = tmp.resolve("out.bin");
+        new File(out).write(source).thenRun(
+                () -> {
+                    try {
+                        MatcherAssert.assertThat(
+                                bytesToHex(sha256().digest(Files.readAllBytes(out))),
+                                Matchers.equalTo(
+                                        "F627CA4C2C322F15DB26152DF306BD4F983F0146409B81A4341B9B340C365A16"
+                                )
+                        );
+                    } catch (final IOException err) {
+                        throw new IllegalStateException(err);
+                    }
+                }
+        ).toCompletableFuture().get();
+
+    }
+
     @RepeatedTest(1000)
     void copy(@TempDir final Path tmp) throws Exception {
         final Path src = tmp.resolve("source");
@@ -144,7 +165,7 @@ public final class FileTest {
         final Path dest = tmp.resolve("dst");
         new TestResource("file.bin").copy(src);
         final ExecutorService exec = Executors.newSingleThreadExecutor();
-        new File(dest).write(new File(src).content(Buffers.Standard.K1, exec), exec)
+        new File(dest, exec).write(new File(src, exec).content(Buffers.Standard.K1))
             .toCompletableFuture().get();
         MatcherAssert.assertThat(
             bytesToHex(sha256().digest(Files.readAllBytes(dest))),
@@ -154,22 +175,10 @@ public final class FileTest {
 
     @Test
     void requestNextItemsOnlyOnDemand(@TempDir final Path tmp,
-        @BufferSource(buffers = 5) final Publisher<ByteBuffer> source) throws Exception {
-        final WriteGreed.Constant greed = new WriteGreed.Constant(3, 1);
-        final AtomicInteger requests = new AtomicInteger();
+        @BufferSource(buffers = 100) final Publisher<ByteBuffer> source) throws Exception {
         new File(tmp.resolve("output1")).write(
-            source,
-            sub -> {
-                final boolean requested = greed.request(sub);
-                if (requested) {
-                    requests.incrementAndGet();
-                }
-                return requested;
-            }
+            source, new WriteGreed.Constant(1, 0)
         ).toCompletableFuture().get();
-        MatcherAssert.assertThat(
-            requests.get(), Matchers.greaterThanOrEqualTo(3)
-        );
     }
 
     @Test
@@ -178,7 +187,7 @@ public final class FileTest {
     void writeHugeFile(@TempDir final Path tmp,
         @BufferSource(buffers = 1024 * 1024) final Publisher<ByteBuffer> source) throws Exception {
         final Path target = tmp.resolve("target");
-        new File(target).write(source, WriteGreed.SYSTEM).toCompletableFuture().get();
+        new File(target).write(source).toCompletableFuture().get();
     }
 
     @Test

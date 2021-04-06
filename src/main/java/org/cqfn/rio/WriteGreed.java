@@ -24,8 +24,9 @@
  */
 package org.cqfn.rio;
 
-import java.util.concurrent.atomic.AtomicLong;
 import org.reactivestreams.Subscription;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Greed level of write consumer.
@@ -47,11 +48,33 @@ public interface WriteGreed {
     );
 
     /**
-     * Request next chunks from subscription.
-     * @param sub Subscription to request
+     * Init the subscription.
+     * @param sub Subscription to init
+     */
+    void init(Subscription sub);
+
+    /**
+     * Received next chunks from subscription.
+     * @param sub Subsscription
      * @return True if reuqested successfully
      */
-    boolean request(Subscription sub);
+    void received(Subscription sub);
+
+    /**
+     * Processed chunk.
+     * @param sub Subsscription
+     */
+    default void processed(Subscription sub) {
+        // do nothing
+    }
+
+    /**
+     * Try to convert into adaptive mode.
+     * @return Adaptive greed if applicable.
+     */
+    default WriteGreed adaptive() {
+        return this;
+    }
 
     /**
      * Request always constant amount.
@@ -96,13 +119,22 @@ public interface WriteGreed {
         }
 
         @Override
-        public boolean request(final Subscription sub) {
-            final long pos = this.cnt.getAndIncrement();
-            final boolean result = pos == 0 || pos % (this.amount - this.shift + 1) == 0;
-            if (result) {
+        public void init(final Subscription sub) {
+            sub.request(this.amount);
+        }
+
+        @Override
+        public void received(final Subscription sub) {
+            final long pos = this.cnt.incrementAndGet();
+            if (pos == this.amount - this.shift) {
                 sub.request(this.amount);
+                this.cnt.addAndGet(-pos);
             }
-            return result;
+        }
+
+        @Override
+        public WriteGreed adaptive() {
+            return new AdaptiveGreed(this.amount, this.shift);
         }
     }
 }

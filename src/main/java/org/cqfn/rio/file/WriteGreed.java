@@ -24,7 +24,6 @@
  */
 package org.cqfn.rio.file;
 
-import java.util.concurrent.atomic.AtomicLong;
 import org.reactivestreams.Subscription;
 
 /**
@@ -48,62 +47,38 @@ public interface WriteGreed extends org.cqfn.rio.WriteGreed {
     );
 
     /**
-     * Request next chunks from subscription.
-     * @param sub Subscription to request
-     * @return True if reuqested successfully
-     */
-    boolean request(Subscription sub);
-
-    /**
      * Request always constant amount.
      * @since 0.1
      */
     final class Constant implements WriteGreed {
 
         /**
-         * Amount to request.
+         * Origin constant.
          */
-        private final long amount;
-
-        /**
-         * Request shift.
-         * <p>
-         * If shift is greater than zero, this object will request
-         * next chunk before all previous chunks were consumed. E.g.
-         * if it's requesting 100 items on each iteration and shift is equal to 2,
-         * then next request of 100 items will occur on 98 item.
-         * </p>
-         */
-        private final long shift;
-
-        /**
-         * Counter.
-         */
-        private final AtomicLong cnt;
+        private final org.cqfn.rio.WriteGreed cst;
 
         /**
          * New constant greed level.
          * @param amount Amount to request
          * @param shift Request items before shifted amount was processed
          */
-        @SuppressWarnings("PMD.ConstructorOnlyInitializesOrCallOtherConstructors")
         public Constant(final long amount, final long shift) {
-            if (shift >= amount) {
-                throw new IllegalArgumentException("Shift should be less than amount");
-            }
-            this.amount = amount;
-            this.shift = shift;
-            this.cnt = new AtomicLong();
+            this.cst = new org.cqfn.rio.WriteGreed.Constant(amount, shift);
         }
 
         @Override
-        public boolean request(final Subscription sub) {
-            final long pos = this.cnt.getAndIncrement();
-            final boolean result = pos == 0 || pos % (this.amount - this.shift + 1) == 0;
-            if (result) {
-                sub.request(this.amount);
-            }
-            return result;
+        public void init(final Subscription sub) {
+            this.cst.init(sub);
+        }
+
+        @Override
+        public void received(final Subscription sub) {
+            this.cst.received(sub);
+        }
+
+        @Override
+        public void processed(final Subscription sub) {
+            this.cst.processed(sub);
         }
     }
 }
