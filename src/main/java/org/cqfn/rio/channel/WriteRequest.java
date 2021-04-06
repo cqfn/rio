@@ -24,11 +24,11 @@
  */
 package org.cqfn.rio.channel;
 
-import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
 
 /**
  * Request to write.
@@ -44,11 +44,17 @@ abstract class WriteRequest {
     protected final CompletableFuture<Void> future;
 
     /**
+     * Logger.
+     */
+    protected final Logger logger;
+
+    /**
      * Ctor.
      * @param future Write future
      */
     private WriteRequest(final CompletableFuture<Void> future) {
         this.future = future;
+        this.logger = Logger.getLogger(this.getClass().getSimpleName());
     }
 
     /**
@@ -87,9 +93,10 @@ abstract class WriteRequest {
                     try {
                         chan.close();
                     } catch (final IOException cex) {
-                        Logger.warn(
-                            this,
-                            "Failed to close channel on next failure: %[exception]s", cex
+                        this.logger.warning(
+                            String.format(
+                                "Failed to close channel on next failure: %s", cex
+                            )
                         );
                     }
                     this.future.completeExceptionally(iex);
@@ -166,32 +173,11 @@ abstract class WriteRequest {
             try {
                 chan.close();
             } catch (final IOException cex) {
-                Logger.warn(
-                    this,
-                    "Failed to close channel on error: %[exception]s", cex
+                this.logger.warning(
+                    String.format("Failed to close channel on error: %[exception]s", cex)
                 );
             }
             this.future.completeExceptionally(this.err);
-        }
-    }
-
-    /**
-     * Init request.
-     * @since 0.2
-     */
-    static final class Init extends WriteRequest {
-
-        /**
-         * Ctor.
-         * @param future Write future
-         */
-        Init(final CompletableFuture<Void> future) {
-            super(future);
-        }
-
-        @Override
-        void process(final WritableByteChannel chan) {
-            // nothing
         }
     }
 }

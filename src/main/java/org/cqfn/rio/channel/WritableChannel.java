@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
+import org.cqfn.rio.IoExecutor;
 import org.cqfn.rio.WriteGreed;
 import org.reactivestreams.Publisher;
 
@@ -53,7 +54,7 @@ public final class WritableChannel {
      * @param src Writable channel source
      */
     public WritableChannel(final ChannelSource<? extends WritableByteChannel> src) {
-        this(src, ReadableChannel.DEFAULT_IO);
+        this(src, IoExecutor.shared());
     }
 
     /**
@@ -65,6 +66,15 @@ public final class WritableChannel {
         final ExecutorService exec) {
         this.src = src;
         this.exec = exec;
+    }
+
+    /**
+     * Write data publisher into the channel.
+     * @param data Publisher
+     * @return Future
+     */
+    public CompletionStage<Void> write(final Publisher<ByteBuffer> data) {
+        return this.write(data, WriteGreed.SYSTEM.adaptive());
     }
 
     /**

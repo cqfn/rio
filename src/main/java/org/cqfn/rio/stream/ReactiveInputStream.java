@@ -28,7 +28,6 @@ package org.cqfn.rio.stream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
-import java.util.concurrent.ExecutorService;
 import org.cqfn.rio.Buffers;
 import org.cqfn.rio.channel.ReadableChannel;
 import org.reactivestreams.Publisher;
@@ -55,10 +54,9 @@ public final class ReactiveInputStream {
     /**
      * Read input stream as a publisher of byte buffers.
      * @param buf Buffer allocation strategy
-     * @param exec Executor service
      * @return Publisher of bute buffers
      */
-    public Publisher<ByteBuffer> read(final Buffers buf, final ExecutorService exec) {
-        return new ReadableChannel(() -> Channels.newChannel(this.src)).read(buf, exec);
+    public Publisher<ByteBuffer> read(final Buffers buf) {
+        return new ReadableChannel(() -> Channels.newChannel(this.src)).read(buf);
     }
 }

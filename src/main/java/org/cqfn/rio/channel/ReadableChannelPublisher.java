@@ -72,21 +72,14 @@ final class ReadableChannelPublisher implements Publisher<ByteBuffer> {
     private final ExecutorService exec;
 
     /**
-     * Executor service for subscribers.
-     */
-    private final ExecutorService subex;
-
-    /**
      * Ctor.
      * @param src Channel
      * @param buffers Buffers allocation strategy
      * @param exec Executor service for IO operations
-     * @param subex Executor service of subscriber
      */
     ReadableChannelPublisher(final ReadableByteChannel src,
-        final Buffers buffers, final ExecutorService exec,
-        final ExecutorService subex) {
-        this(() -> src, buffers, exec, subex);
+        final Buffers buffers, final ExecutorService exec) {
+        this(() -> src, buffers, exec);
     }
 
     /**
@@ -94,15 +87,12 @@ final class ReadableChannelPublisher implements Publisher<ByteBuffer> {
      * @param src Source of channel
      * @param buffers Buffers allocation strategy
      * @param exec Executor service for IO operations
-     * @param subex Executor service of subscriber
      */
     ReadableChannelPublisher(final ChannelSource<? extends ReadableByteChannel> src,
-        final Buffers buffers, final ExecutorService exec,
-        final ExecutorService subex) {
+        final Buffers buffers, final ExecutorService exec) {
         this.src = src;
         this.buffers = buffers;
         this.exec = exec;
-        this.subex = subex;
     }
 
     @Override
@@ -116,8 +106,7 @@ final class ReadableChannelPublisher implements Publisher<ByteBuffer> {
             subscriber.onError(err);
             return;
         }
-        final ReadSubscriberState<? super ByteBuffer> wrap =
-            new ReadSubscriberState<>(new AsyncSubscriber<>(subscriber, this.subex));
+        final ReadSubscriberState<? super ByteBuffer> wrap = new ReadSubscriberState<>(subscriber);
         wrap.onSubscribe(
             new ReadSubscription(
                 wrap, this.buffers,
