@@ -24,13 +24,14 @@
  */
 package org.cqfn.rio.channel;
 
-import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
+
 import org.jctools.queues.SpscUnboundedArrayQueue;
 
 /**
@@ -105,7 +106,8 @@ final class ReadTaskQueue implements Runnable {
             try {
                 this.channel.close();
             } catch (final IOException err) {
-                Logger.warn(this, "Failed to close channel: %[exception]s", err);
+                Logger.getLogger(this.getClass().getSimpleName())
+                    .warning(String.format("Failed to close channel: %s", err));
             }
         }
     }
