@@ -24,7 +24,6 @@
  */
 package org.cqfn.rio.channel;
 
-import com.jcabi.log.Logger;
 import org.cqfn.rio.WriteGreed;
 import org.jctools.queues.SpscUnboundedArrayQueue;
 import org.reactivestreams.Subscription;
@@ -36,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
 
 /**
  * Write subscription runnable task loop.
@@ -154,7 +154,8 @@ final class WriteTaskQueue implements Runnable {
             try {
                 this.channel.close();
             } catch (final IOException err) {
-                Logger.warn(this, "Failed to close channel: %[exception]s", err);
+                Logger.getLogger(this.getClass().getSimpleName())
+                    .warning(String.format("Failed to close channel: %s", err));
             }
         }
         Optional.ofNullable(this.sub.getAndSet(null)).ifPresent(Subscription::cancel);

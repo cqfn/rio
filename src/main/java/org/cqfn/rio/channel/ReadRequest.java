@@ -24,11 +24,11 @@
  */
 package org.cqfn.rio.channel;
 
-import com.jcabi.log.Logger;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
+import java.util.logging.Logger;
 import org.cqfn.rio.Buffers;
 
 /**
@@ -46,11 +46,17 @@ abstract class ReadRequest {
     protected final ReadSubscriberState<? super ByteBuffer> sub;
 
     /**
+     * Logger.
+     */
+    protected final Logger logger;
+
+    /**
      * New read request.
      * @param sub Subscriber
      */
     private ReadRequest(final ReadSubscriberState<? super ByteBuffer> sub) {
         this.sub = sub;
+        this.logger = Logger.getLogger(this.getClass().getSimpleName());
     }
 
     /**
@@ -104,9 +110,10 @@ abstract class ReadRequest {
                     try {
                         channel.close();
                     } catch (final IOException cex) {
-                        Logger.warn(
-                            this,
-                            "Failed to close channel on errors: %[exception]s", cex
+                        this.logger.warning(
+                            String.format(
+                                "Failed to close channel on errors: %s", cex
+                            )
                         );
                     }
                     this.sub.onError(iex);
@@ -121,9 +128,10 @@ abstract class ReadRequest {
                         try {
                             channel.close();
                         } catch (final IOException cex) {
-                            Logger.warn(
-                                this,
-                                "Failed to close channel on next error: %[exception]s", cex
+                            this.logger.warning(
+                                String.format(
+                                    "Failed to close channel on next error: %s", cex
+                                )
                             );
                         }
                         this.sub.onError(exx);
