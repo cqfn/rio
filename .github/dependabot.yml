@@ -1,0 +1,19 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  assignees:
+  - g4s8
+  ignore:
+  - dependency-name: com.artipie:ppom
+    versions:
+    - 0.4.5
+  - dependency-name: org.jctools:jctools-core
+    versions:
+    - 3.2.0
+  - dependency-name: com.jcabi:jcabi-log
+    versions:
+    - 0.19.0
