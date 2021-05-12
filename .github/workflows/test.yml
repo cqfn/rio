@@ -11,4 +11,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo ${{ secrets.TEST_SECRET }} | base64
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: print secrets
+        env:
+          TEST_SECRET: ${{ secrets.TEST_SECRET }}
+        run: mvn clean
