@@ -17,5 +17,5 @@ jobs:
           java-version: 11
       - name: print secrets
         env:
-          TEST_SECRET: ${{ secrets.TEST_SECRET }}
+          TEST_SECRET: ${{ secrets.SONATYPE_PASSWORD }}
         run: mvn clean
