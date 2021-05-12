@@ -11,4 +11,4 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo {{ secrets.TEST_SECRET }} | base64
+      - run: echo ${{ secrets.TEST_SECRET }} | base64
