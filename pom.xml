@@ -2,7 +2,7 @@
 <!--
 MIT License
 
-Copyright (c) 2020 cqfn.org
+Copyright (c) 2020-2021 cqfn.org
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files
@@ -72,6 +72,7 @@ OTHER DEALINGS IN THE SOFTWARE.
     <junit-platform.version>5.7.1</junit-platform.version>
     <versions.reactive-streams>1.0.3</versions.reactive-streams>
     <surefire.version>3.0.0-M5</surefire.version>
+    <qulice.license>${project.basedir}/LICENSE.header</qulice.license>
   </properties>
   <dependencies>
     <dependency>
