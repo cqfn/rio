@@ -26,6 +26,8 @@ by various methods in main entry points.
 
 ### Files
 
+RIO has API for reading files as reactive publisher of byte buffers and writing publishers to files.
+
 To create new reactive file instance use the constructor:
 ```java
 var file = new File(Paths.get("/tmp/my/file.txt"));
