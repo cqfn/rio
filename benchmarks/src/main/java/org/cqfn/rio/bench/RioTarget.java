@@ -1,3 +1,7 @@
+/*
+ * MIT License Copyright (c) 2020-2021 cqfn.org
+ * https://github.com/cqfn/rio/blob/master/LICENSE.txt
+ */
 package org.cqfn.rio.bench;
 
 import java.nio.ByteBuffer;
