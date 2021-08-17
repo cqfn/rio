@@ -32,6 +32,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import org.cqfn.rio.Buffers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
@@ -67,11 +68,12 @@ class ReactiveInputStreamTest {
             PipedInputStream newin = new PipedInputStream(newout)
         ) {
             final byte[] data = "xyz098".getBytes();
+            final Future<byte[]> future = this.single(
+                new ReactiveInputStream(newin).read(Buffers.Standard.K1)
+            ).toFuture();
             newout.write(data, 0, data.length);
             MatcherAssert.assertThat(
-                this.single(
-                    new ReactiveInputStream(newin).read(Buffers.Standard.K1)
-                ).toFuture().get(),
+                future.get(),
                 new IsEqual<>(data)
             );
         }
