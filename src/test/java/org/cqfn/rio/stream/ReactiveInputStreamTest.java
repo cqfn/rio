@@ -24,21 +24,19 @@
  */
 package org.cqfn.rio.stream;
 
-import io.reactivex.Flowable;
-import io.reactivex.Single;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import org.cqfn.rio.Buffers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 /**
  * Test for {@link ReactiveInputStream}.
@@ -50,60 +48,83 @@ class ReactiveInputStreamTest {
     void transfersData() throws ExecutionException, InterruptedException {
         final byte[] bytes = "abc123".getBytes();
         MatcherAssert.assertThat(
-            this.single(
+            LengthSubscriber.of(
                 new ReactiveInputStream(
                     new ByteArrayInputStream(bytes)
                 ).read(Buffers.Standard.K1)
-            ).toFuture().get(),
-            new IsEqual<>(bytes)
+            ).get(),
+            new IsEqual<>(bytes.length)
         );
     }
 
     @Test
-    @Disabled
-    void transferDataWithPipedStreams() throws IOException, ExecutionException,
-        InterruptedException {
-        try (
-            PipedOutputStream newout = new PipedOutputStream();
-            PipedInputStream newin = new PipedInputStream(newout)
-        ) {
-            final byte[] data = "xyz098".getBytes();
-            final Future<byte[]> future = this.single(
-                new ReactiveInputStream(newin).read(Buffers.Standard.K1)
-            ).toFuture();
+    void transferDataWithPipedStreams() throws Exception {
+        final CompletableFuture<Integer> length = new CompletableFuture<>();
+        final byte[] data = "xyz098".getBytes();
+        try (PipedOutputStream newout = new PipedOutputStream()) {
+            new ReactiveInputStream(new PipedInputStream(newout))
+                .read(Buffers.Standard.K1)
+                .subscribe(new LengthSubscriber(length));
             newout.write(data, 0, data.length);
-            MatcherAssert.assertThat(
-                future.get(),
-                new IsEqual<>(data)
-            );
         }
+        MatcherAssert.assertThat(
+            length.join(),
+            new IsEqual<>(data.length)
+        );
     }
 
-    Single<byte[]> single(final Publisher<ByteBuffer> source) {
-        return Flowable.fromPublisher(source).reduce(
-            ByteBuffer.allocate(0),
-            (left, right) -> {
-                right.mark();
-                final ByteBuffer result;
-                if (left.capacity() - left.limit() >= right.limit()) {
-                    left.position(left.limit());
-                    left.limit(left.limit() + right.limit());
-                    result = left.put(right);
-                } else {
-                    result = ByteBuffer.allocate(
-                        2 * Math.max(left.capacity(), right.capacity())
-                    ).put(left).put(right);
-                }
-                right.reset();
-                result.flip();
-                return result;
-            }
-        ).map(
-            buf -> {
-                final byte[] bytes = new byte[buf.remaining()];
-                buf.get(bytes);
-                return bytes;
-            }
-        );
+    /**
+     * Subscrier to get publisher length.
+     */
+    private static final class LengthSubscriber implements Subscriber<ByteBuffer> {
+
+        /**
+         * Result future.
+         */
+        private final CompletableFuture<Integer> future;
+
+        /**
+         * Tmp accumulator.
+         */
+        private volatile int acc;
+
+        /**
+         * New Subscriber.
+         * @param future Result
+         */
+        private LengthSubscriber(final CompletableFuture<Integer> future) {
+            this.future = future;
+        }
+
+        @Override
+        public void onSubscribe(final Subscription sub) {
+            sub.request(Long.MAX_VALUE);
+        }
+
+        @Override
+        public void onNext(final ByteBuffer buf) {
+            acc += buf.remaining();
+        }
+
+        @Override
+        public void onError(final Throwable err) {
+            future.completeExceptionally(err);
+        }
+
+        @Override
+        public void onComplete() {
+            future.complete(this.acc);
+        }
+
+        /**
+         * Length of publisher of byte buffers.
+         * @param src Publisher
+         * @return Length future
+         */
+        static CompletableFuture<Integer> of(final Publisher<ByteBuffer> src) {
+            final CompletableFuture<Integer> length = new CompletableFuture<>();
+            src.subscribe(new LengthSubscriber(length));
+            return length;
+        }
     }
 }
