@@ -24,20 +24,20 @@
  */
 package org.cqfn.rio.stream;
 
+import hu.akarnokd.rxjava2.interop.SingleInterop;
 import io.reactivex.Flowable;
-import io.reactivex.Single;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import org.cqfn.rio.Buffers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -78,23 +78,68 @@ class ReactiveInputStreamTest {
     }
 
     @Test
-    @Timeout(10)
     void transferDataWithPipedStreams() throws Exception {
         final byte[] data = "any bytes".getBytes();
-        Publisher<ByteBuffer> res;
         final int times = 200;
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final CompletableFuture<ByteBuffer> buf = new CompletableFuture<>();
         try (PipedOutputStream newout = new PipedOutputStream()) {
-            res = new ReactiveInputStream(new PipedInputStream(newout)).read(Buffers.Standard.K1);
+            new ReactiveInputStream(new PipedInputStream(newout)).read(Buffers.Standard.K1)
+                .subscribe(new ByteBufferSubscriber(buf));
             for (int cnt = 0; cnt < times; cnt = cnt + 1) {
                 newout.write(data, 0, data.length);
                 out.write(data, 0, data.length);
             }
         }
         MatcherAssert.assertThat(
-            this.single(res).toFuture().get(),
+            buf.toCompletableFuture().join().array(),
             new IsEqual<>(out.toByteArray())
         );
+    }
+
+    /**
+     * Subscrier to get publisher ByteBuffer.
+     */
+    private static final class ByteBufferSubscriber implements Subscriber<ByteBuffer> {
+
+        /**
+         * Future.
+         */
+        private final CompletableFuture<ByteBuffer> buf;
+
+        /**
+         * Inner buffer.
+         */
+        private final ByteBuffer inner;
+
+        /**
+         * Ctor.
+         * @param buf Future with buffer.
+         */
+        private ByteBufferSubscriber(final CompletableFuture<ByteBuffer> buf) {
+            this.buf = buf;
+            this.inner = ByteBuffer.allocate(0);
+        }
+
+        @Override
+        public void onSubscribe(final Subscription sub) {
+            sub.request(Long.MAX_VALUE);
+        }
+
+        @Override
+        public void onNext(final ByteBuffer buf) {
+            this.inner.put(buf);
+        }
+
+        @Override
+        public void onError(final Throwable err) {
+            this.buf.completeExceptionally(err);
+        }
+
+        @Override
+        public void onComplete() {
+            this.buf.complete(this.inner);
+        }
     }
 
     /**
@@ -152,7 +197,7 @@ class ReactiveInputStreamTest {
         }
     }
 
-    private Single<byte[]> single(final Publisher<ByteBuffer> source) {
+    private CompletionStage<byte[]> single(final Publisher<ByteBuffer> source) {
         return Flowable.fromPublisher(source).reduce(
             ByteBuffer.allocate(0),
             (left, right) -> {
@@ -177,6 +222,6 @@ class ReactiveInputStreamTest {
                 buf.get(bytes);
                 return bytes;
             }
-        );
+        ).to(SingleInterop.get());
     }
 }
