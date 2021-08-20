@@ -24,7 +24,10 @@
  */
 package org.cqfn.rio.stream;
 
+import io.reactivex.Flowable;
+import io.reactivex.Single;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
@@ -34,6 +37,7 @@ import org.cqfn.rio.Buffers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -58,7 +62,7 @@ class ReactiveInputStreamTest {
     }
 
     @Test
-    void transferDataWithPipedStreams() throws Exception {
+    void countsDataWithPipedStreams() throws Exception {
         final CompletableFuture<Integer> length = new CompletableFuture<>();
         final byte[] data = "xyz098".getBytes();
         try (PipedOutputStream newout = new PipedOutputStream()) {
@@ -70,6 +74,26 @@ class ReactiveInputStreamTest {
         MatcherAssert.assertThat(
             length.join(),
             new IsEqual<>(data.length)
+        );
+    }
+
+    @Test
+    @Timeout(10)
+    void transferDataWithPipedStreams() throws Exception {
+        final byte[] data = "any bytes".getBytes();
+        Publisher<ByteBuffer> res;
+        final int times = 200;
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (PipedOutputStream newout = new PipedOutputStream()) {
+            res = new ReactiveInputStream(new PipedInputStream(newout)).read(Buffers.Standard.K1);
+            for (int cnt = 0; cnt < times; cnt = cnt + 1) {
+                newout.write(data, 0, data.length);
+                out.write(data, 0, data.length);
+            }
+        }
+        MatcherAssert.assertThat(
+            this.single(res).toFuture().get(),
+            new IsEqual<>(out.toByteArray())
         );
     }
 
@@ -103,17 +127,17 @@ class ReactiveInputStreamTest {
 
         @Override
         public void onNext(final ByteBuffer buf) {
-            acc += buf.remaining();
+            this.acc += buf.remaining();
         }
 
         @Override
         public void onError(final Throwable err) {
-            future.completeExceptionally(err);
+            this.future.completeExceptionally(err);
         }
 
         @Override
         public void onComplete() {
-            future.complete(this.acc);
+            this.future.complete(this.acc);
         }
 
         /**
@@ -126,5 +150,33 @@ class ReactiveInputStreamTest {
             src.subscribe(new LengthSubscriber(length));
             return length;
         }
+    }
+
+    private Single<byte[]> single(final Publisher<ByteBuffer> source) {
+        return Flowable.fromPublisher(source).reduce(
+            ByteBuffer.allocate(0),
+            (left, right) -> {
+                right.mark();
+                final ByteBuffer result;
+                if (left.capacity() - left.limit() >= right.limit()) {
+                    left.position(left.limit());
+                    left.limit(left.limit() + right.limit());
+                    result = left.put(right);
+                } else {
+                    result = ByteBuffer.allocate(
+                        2 * Math.max(left.capacity(), right.capacity())
+                    ).put(left).put(right);
+                }
+                right.reset();
+                result.flip();
+                return result;
+            }
+        ).map(
+            buf -> {
+                final byte[] bytes = new byte[buf.remaining()];
+                buf.get(bytes);
+                return bytes;
+            }
+        );
     }
 }
