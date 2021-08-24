@@ -24,15 +24,12 @@
  */
 package org.cqfn.rio.stream;
 
-import hu.akarnokd.rxjava2.interop.SingleInterop;
-import io.reactivex.Flowable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import org.cqfn.rio.Buffers;
 import org.hamcrest.MatcherAssert;
@@ -85,7 +82,7 @@ class ReactiveInputStreamTest {
         final CompletableFuture<ByteBuffer> buf = new CompletableFuture<>();
         try (PipedOutputStream newout = new PipedOutputStream()) {
             new ReactiveInputStream(new PipedInputStream(newout)).read(Buffers.Standard.K1)
-                .subscribe(new ByteBufferSubscriber(buf));
+                .subscribe(new ByteBufferSubscriber(buf, data.length * times));
             for (int cnt = 0; cnt < times; cnt = cnt + 1) {
                 newout.write(data, 0, data.length);
                 out.write(data, 0, data.length);
@@ -116,9 +113,9 @@ class ReactiveInputStreamTest {
          * Ctor.
          * @param buf Future with buffer.
          */
-        private ByteBufferSubscriber(final CompletableFuture<ByteBuffer> buf) {
+        private ByteBufferSubscriber(final CompletableFuture<ByteBuffer> buf, final int size) {
             this.buf = buf;
-            this.inner = ByteBuffer.allocate(0);
+            this.inner = ByteBuffer.allocate(size);
         }
 
         @Override
@@ -195,33 +192,5 @@ class ReactiveInputStreamTest {
             src.subscribe(new LengthSubscriber(length));
             return length;
         }
-    }
-
-    private CompletionStage<byte[]> single(final Publisher<ByteBuffer> source) {
-        return Flowable.fromPublisher(source).reduce(
-            ByteBuffer.allocate(0),
-            (left, right) -> {
-                right.mark();
-                final ByteBuffer result;
-                if (left.capacity() - left.limit() >= right.limit()) {
-                    left.position(left.limit());
-                    left.limit(left.limit() + right.limit());
-                    result = left.put(right);
-                } else {
-                    result = ByteBuffer.allocate(
-                        2 * Math.max(left.capacity(), right.capacity())
-                    ).put(left).put(right);
-                }
-                right.reset();
-                result.flip();
-                return result;
-            }
-        ).map(
-            buf -> {
-                final byte[] bytes = new byte[buf.remaining()];
-                buf.get(bytes);
-                return bytes;
-            }
-        ).to(SingleInterop.get());
     }
 }

@@ -81,11 +81,6 @@ OTHER DEALINGS IN THE SOFTWARE.
       <version>${versions.reactive-streams}</version>
     </dependency>
     <dependency>
-      <groupId>com.github.akarnokd</groupId>
-      <artifactId>rxjava2-jdk8-interop</artifactId>
-      <version>0.3.7</version>
-    </dependency>
-    <dependency>
       <groupId>org.jctools</groupId>
       <artifactId>jctools-core</artifactId>
       <version>3.3.0</version>
