@@ -25,6 +25,7 @@
 package org.cqfn.rio.stream;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
@@ -58,7 +59,7 @@ class ReactiveInputStreamTest {
     }
 
     @Test
-    void transferDataWithPipedStreams() throws Exception {
+    void countsDataWithPipedStreams() throws Exception {
         final CompletableFuture<Integer> length = new CompletableFuture<>();
         final byte[] data = "xyz098".getBytes();
         try (PipedOutputStream newout = new PipedOutputStream()) {
@@ -71,6 +72,71 @@ class ReactiveInputStreamTest {
             length.join(),
             new IsEqual<>(data.length)
         );
+    }
+
+    @Test
+    void transferDataWithPipedStreams() throws Exception {
+        final byte[] data = "any bytes".getBytes();
+        final int times = 200;
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final CompletableFuture<ByteBuffer> buf = new CompletableFuture<>();
+        try (PipedOutputStream newout = new PipedOutputStream()) {
+            new ReactiveInputStream(new PipedInputStream(newout)).read(Buffers.Standard.K1)
+                .subscribe(new ByteBufferSubscriber(buf, data.length * times));
+            for (int cnt = 0; cnt < times; cnt = cnt + 1) {
+                newout.write(data, 0, data.length);
+                out.write(data, 0, data.length);
+            }
+        }
+        MatcherAssert.assertThat(
+            buf.toCompletableFuture().join().array(),
+            new IsEqual<>(out.toByteArray())
+        );
+    }
+
+    /**
+     * Subscrier to get publisher ByteBuffer.
+     */
+    private static final class ByteBufferSubscriber implements Subscriber<ByteBuffer> {
+
+        /**
+         * Future.
+         */
+        private final CompletableFuture<ByteBuffer> buf;
+
+        /**
+         * Inner buffer.
+         */
+        private final ByteBuffer inner;
+
+        /**
+         * Ctor.
+         * @param buf Future with buffer.
+         */
+        private ByteBufferSubscriber(final CompletableFuture<ByteBuffer> buf, final int size) {
+            this.buf = buf;
+            this.inner = ByteBuffer.allocate(size);
+        }
+
+        @Override
+        public void onSubscribe(final Subscription sub) {
+            sub.request(Long.MAX_VALUE);
+        }
+
+        @Override
+        public void onNext(final ByteBuffer buf) {
+            this.inner.put(buf);
+        }
+
+        @Override
+        public void onError(final Throwable err) {
+            this.buf.completeExceptionally(err);
+        }
+
+        @Override
+        public void onComplete() {
+            this.buf.complete(this.inner);
+        }
     }
 
     /**
@@ -103,17 +169,17 @@ class ReactiveInputStreamTest {
 
         @Override
         public void onNext(final ByteBuffer buf) {
-            acc += buf.remaining();
+            this.acc += buf.remaining();
         }
 
         @Override
         public void onError(final Throwable err) {
-            future.completeExceptionally(err);
+            this.future.completeExceptionally(err);
         }
 
         @Override
         public void onComplete() {
-            future.complete(this.acc);
+            this.future.complete(this.acc);
         }
 
         /**
