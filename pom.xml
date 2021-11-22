@@ -31,7 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
   <parent>
     <groupId>com.artipie</groupId>
     <artifactId>ppom</artifactId>
-    <version>0.5.1</version>
+    <version>1.1.0</version>
   </parent>
   <url>https://github.com/cqfn/rio</url>
   <licenses>
@@ -66,10 +66,8 @@ OTHER DEALINGS IN THE SOFTWARE.
     <url>https://github.com/cqfn/rio</url>
   </issueManagement>
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <junit-platform.version>5.7.1</junit-platform.version>
     <versions.reactive-streams>1.0.3</versions.reactive-streams>
     <surefire.version>3.0.0-M5</surefire.version>
     <qulice.license>${project.basedir}/LICENSE.header</qulice.license>
@@ -113,6 +111,11 @@ OTHER DEALINGS IN THE SOFTWARE.
       <artifactId>junit-jupiter-api</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <testResources>
@@ -151,6 +154,8 @@ OTHER DEALINGS IN THE SOFTWARE.
                 <include>org.cqfn.channel.WriteSubscriberTestReadFlowTest</include>
               </includes>
               <junitArtifactName>none:none</junitArtifactName>
+              <failIfNoTests>false</failIfNoTests>
+              <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
             </configuration>
           </execution>
           <execution>
