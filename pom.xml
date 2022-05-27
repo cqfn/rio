@@ -68,7 +68,7 @@ OTHER DEALINGS IN THE SOFTWARE.
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <versions.reactive-streams>1.0.3</versions.reactive-streams>
+    <versions.reactive-streams>1.0.4</versions.reactive-streams>
     <surefire.version>3.0.0-M6</surefire.version>
     <qulice.license>${project.basedir}/LICENSE.header</qulice.license>
   </properties>
